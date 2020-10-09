@@ -1,0 +1,85 @@
+[
+	{
+		"args": [
+			"-u",
+			"--url"
+		],
+		"options": {
+			"help": "specify a url to be processed",
+			"action": "append",
+			"required": true
+		}
+	},
+	{
+		"args": [
+			"--unshort"
+		],
+		"options": {
+			"help": "try to unshort the url",
+			"action": "store_true"
+		}
+	},
+	{
+		"args": [
+			"--launch-in-browser"
+		],
+		"options": {
+			"help": "launch url in default web browser instead of printing it to stdout",
+			"action": "store_true"
+		}
+	},
+	{
+		"args": [
+			"--allow-referral"
+		],
+		"options": {
+			"help": "do not remove marketing fields from the url",
+			"action": "store_true"
+		}
+	},
+	{
+		"args": [
+			"--ignore-rules"
+		],
+		"options": {
+			"help": "do not parse rules",
+			"action": "store_true"
+		}
+	},
+	{
+		"args": [
+			"--ignore-exceptions"
+		],
+		"options": {
+			"help": "do not parse exception rules",
+			"action": "store_true"
+		}
+	},
+	{
+		"args": [
+			"--ignore-raw"
+		],
+		"options": {
+			"help": "do not parse raw rules",
+			"action": "store_true"
+		}
+	},
+	{
+		"args": [
+			"--ignore-redirections"
+		],
+		"options": {
+			"help": "do not parse redirection rules",
+			"action": "store_true"
+		}
+	},
+	{
+		"args": [
+			"--ignore-domain-blocking"
+		],
+		"options": {
+			"help": "do not parse rules for blocked domains",
+			"action": "store_true"
+		}
+	}
+]
