@@ -5,7 +5,7 @@ Unalix is a simple code library written in Nim. It implements the same regex rul
 Install using `nimble`:
 
 ```bash
-nimble install git://github.com/AmanoTeam/Unalix-nim
+nimble install --accept "git://github.com/AmanoTeam/Unalix-nim"
 ```
 
 #### Usage:
@@ -16,7 +16,7 @@ Removing tracking fields:
 import unalix
 
 var
-    url, result: string
+  url, result: string
 
 url = "https://deezer.com/track/891177062?utm_source=deezer"
 result = clearUrl(url)
@@ -30,7 +30,7 @@ Unshortening a shortened URL:
 import unalix
 
 var
-    url, result: string
+  url, result: string
 
 url = "https://bitly.is/Pricing-Pop-Up"
 result = unshortUrl(url)
