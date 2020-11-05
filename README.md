@@ -15,11 +15,8 @@ Removing tracking fields:
 ```nim
 import unalix
 
-var
-  url, result: string
-
-url = "https://deezer.com/track/891177062?utm_source=deezer"
-result = clearUrl(url)
+let url = "https://deezer.com/track/891177062?utm_source=deezer"
+let result = clearUrl(url)
 
 echo result
 ```
@@ -29,11 +26,8 @@ Unshortening a shortened URL:
 ```nim
 import unalix
 
-var
-  url, result: string
-
-url = "https://bitly.is/Pricing-Pop-Up"
-result = unshortUrl(url)
+let url = "https://bitly.is/Pricing-Pop-Up"
+let result = unshortUrl(url)
 
 echo result
 ```
