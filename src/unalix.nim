@@ -102,3 +102,33 @@ proc unshortUrl(url: string): string =
 
 export clearUrl
 export unshortUrl
+
+when isMainModule:
+  import os
+
+  proc main() =
+    const help = """
+Usage: echo <url> | unalix [--unshort]
+
+--unshort -s: also unshorts the given URLs, i.e., removes all redirects from the URLs (this will make network requests)
+"""
+
+    let args = commandLineParams()
+
+    var unshort = false
+
+    if args.len >= 1:
+      if (args[0] == "-h" or args[0] == "--help"):
+        stderr.write(help)
+        quit(0)
+      if (args[0] == "-s" or args[0] == "--unshort"):
+        unshort = true
+
+    for url in stdin.lines:
+      var new_url = clearUrl(url)
+      if unshort:
+        new_url = clearUrl(unshortUrl(new_url))
+
+      stdout.write(new_url & "\n")
+
+  main()

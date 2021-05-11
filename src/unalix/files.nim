@@ -1,4 +1,4 @@
-include unalix/config
+include ./config
 import json
 
 var rules = %*[]

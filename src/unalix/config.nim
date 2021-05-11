@@ -3,10 +3,11 @@ import httpclient
 const (output, exit_code) = gorgeEx("nimble path unalix")
 
 when exit_code != 0:
-  fatal:
+  const fatal: string =
     """
     Could not get library path.
     """"
+  stderr.write(fatal)
 
 const library_path = output
 
