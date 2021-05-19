@@ -1,134 +1,241 @@
-include unalix/files
-import re
-import uri
-import tables
+import parseopt
+import strformat
+import browsers
 
-proc isRedirect(response: Response): bool =
+import ./unalixpkg/core/url_cleaner
+import ./unalixpkg/core/url_unshort
 
-    if startsWith(response.status, re"30[12378]"):
-      return true
+const helpMessage: string = """
+usage: unalix [--help] [--version] --url URL
+              [--ignore-referral]
+              [--ignore-rules]
+              [--ignore-exceptions]
+              [--ignore-raw-rules]
+              [--ignore-redirections]
+              [--skip-blocked]
+              [--strip-duplicates]
+              [--strip-empty]
+              [--unshort]
+              [--launch-in-browser]
 
-proc handleRedirects(lastURL: string, response: Response): string =
+Unalix is a small, dependency-free, fast
+Nim package (and CLI tool) for removing
+tracking fields from URLs.
 
-    var
-        absolute, relative: Uri
-        location: string
+optional arguments:
+  --help            show this help
+                    message and exit.
+  --version         show version number
+                    and exit.
+  --url URL         HTTP URL you want to
+                    unshort or remove
+                    tracking fields from
+                    (default: read from
+                    stdin)
+  --ignore-referral
+                    instruct Unalix to
+                    not remove referral
+                    marketing fields
+                    from the given URL.
+  --ignore-rules    instruct Unalix to
+                    not remove tracking
+                    fields from the
+                    given URL.
+  --ignore-exceptions
+                    instruct Unalix to
+                    ignore exceptions
+                    for the given URL.
+  --ignore-raw-rules
+                    instruct Unalix to
+                    ignore raw rules for
+                    the given URL.
+  --ignore-redirections
+                    instruct Unalix to
+                    ignore redirection
+                    rules for the given
+                    URL.
+  --skip-blocked    instruct Unalix to
+                    not process rules
+                    for blocked URLs.
+  --strip-duplicates
+                    instruct Unalix to
+                    strip fields with
+                    duplicate names.
+  --strip-empty     instruct Unalix to
+                    strip fields with
+                    empty values.
+  --unshort         unshort the given
+                    URL (HTTP requests
+                    will be made).
+  --launch-in-browser
+                    launch URL with
+                    user's default
+                    browser.
 
-    location = response.headers.getOrDefault"Location"
-
-    if startsWith(location, re"https?://"):
-        return location
-
-    relative = parseUri(location)
-
-    absolute = parseUri(lastURL)
-    absolute.path = relative.path
-    absolute.query = relative.query
-    absolute.anchor = relative.anchor
-    
-    return $absolute
-
-proc clearUrl(
-    url: string,
-    allow_referral: bool = false,
-    ignore_rules: bool = false,
-    ignore_exceptions: bool = false,
-    ignore_raw: bool = false,
-    ignore_redirections: bool = false,
-    skip_blocked: bool = false
-): string =
-    
-    var
-      result: string
-      skip_provider: bool
-      original_url: string
-
-    original_url = url
-    result = url
-
-    for rule in rules:
-        for provider in keys(rule["providers"]):
-            if skip_blocked and rule["providers"][provider]["completeProvider"].getBool():
-                continue
-            skip_provider = false
-            if match(result, re(rule["providers"][provider]["urlPattern"].getStr())):
-                if not ignore_exceptions:
-                    for exception in rule["providers"][provider]["exceptions"]:
-                        if match(result, re(exception.getStr())):
-                            skip_provider = true
-                            break
-                if skip_provider:
-                    continue
-                if not ignore_redirections:
-                    for redirection in rule["providers"][provider]["redirections"]:
-                        result = replacef(result, re(redirection.getStr() & ".*"), "$1")
-                    if result != original_url:
-                        result = decodeUrl(result, decodePlus = false)
-                if not ignore_rules:
-                    for common in rule["providers"][provider]["rules"]:
-                        result = replacef(result, re(r"(%26|&|%23|#|%3F|%3f|\?)" & common.getStr() & r"((\=|%3D|%3d)[^&]*)"), "$1")
-                if not allow_referral:
-                    for referral in rule["providers"][provider]["referralMarketing"]:
-                        result = replacef(result, re(r"(%26|&|%23|#|%3F|%3f|\?)" & referral.getStr() & r"((\=|%3D|%3d)[^&]*)"), "$1")
-                if not ignore_raw:
-                    for raw in rule["providers"][provider]["rawRules"]:
-                        result = replace(result, re(raw.getStr()))
-                original_url = result
-    
-    for pattern in replacements:
-        result = replace(result, re(pattern[0]), pattern[1])
-
-    return result
-
-proc unshortUrl(url: string): string =
-
-    var
-        cleanedUrl, redirectUrl: string
-        response: Response
-
-    cleanedUrl = clearUrl(url)
-
-    while true:
-
-        response = head(client, cleanedUrl)
-
-        if isRedirect(response):
-            redirectUrl = handleRedirects(cleanedUrl, response)
-            cleanedUrl = clearUrl(redirectUrl)
-        else:
-            break
-
-    return cleanedUrl
-
-export clearUrl
-export unshortUrl
-
-when isMainModule:
-  import os
-
-  proc main() =
-    const help = """
-Usage: echo <url> | unalix [--unshort]
-
---unshort -s: also unshorts the given URLs, i.e., removes all redirects from the URLs (this will make network requests)
+When no URLs are supplied, default
+action is to read from standard input.
 """
 
-    let args = commandLineParams()
+const versionNumber: string = "0.1"
 
-    var unshort = false
+const commitHash: string = staticExec("git rev-parse HEAD")
 
-    if args.len >= 1:
-      if (args[0] == "-h" or args[0] == "--help"):
-        stderr.write(help)
-        quit(0)
-      if (args[0] == "-s" or args[0] == "--unshort"):
-        unshort = true
+const versionInfo: string = fmt"Unalix v{versionNumber} (+{commitHash})" &
+    "\n" &
+    fmt"Compiled on {hostOS} ({hostCPU}) using Nim v{NimVersion}"
 
-    for url in stdin.lines:
-      var new_url = clearUrl(url)
-      if unshort:
-        new_url = clearUrl(unshortUrl(new_url))
+const longNoVal: seq[string] = @[ ## Long options that doesn't require values
+    "ignore-referral",
+    "ignore-rules",
+    "ignore-exceptions",
+    "ignore-raw-rules",
+    "ignore-redirections",
+    "skip-blocked",
+    "strip-duplicates",
+    "strip-empty",
+    "unshort",
+    "launch-in-browser",
+    "help",
+    "version"
+]
 
-      stdout.write(new_url & "\n")
+const longVal: seq[string] = @[ ## Long options that require values
+    "url"
+]
 
-  main()
+var
+    url: string
+    parsedUrl: string
+    argument: string
+    ignoreReferralMarketing: bool
+    ignoreRules: bool
+    ignoreExceptions: bool
+    ignoreRawRules: bool
+    ignoreRedirections: bool
+    skipBlocked: bool
+    stripDuplicates: bool
+    stripEmpty: bool
+    unshort: bool
+    launch_in_browser: bool
+
+proc signalHandler() {.noconv.} =
+    stdout.write("\n")
+    quit(0)
+
+setControlCHook(signalHandler)
+
+var parser = initOptParser(longNoVal = longNoVal)
+
+while true:
+    parser.next()
+
+    case parser.kind
+    of cmdEnd:
+        break
+    of cmdShortOption, cmdLongOption:
+        if not (parser.key in longVal & longNoVal):
+            argument = if len(parser.key) > 1: fmt("--{parser.key}") else: fmt("-{parser.key}")
+            stderr.write(fmt"unalix: unrecognized argument: {argument}" & "\n")
+            quit(1)
+        case parser.key
+        of "version":
+            stdout.write(versionInfo)
+            quit(0)
+        of "help":
+            stdout.write(helpMessage)
+            quit(0)
+        of "url":
+            url = parser.val
+        of "ignore-referral":
+            ignoreReferralMarketing = true
+        of "ignore-rules":
+            ignoreRules = true
+        of "ignore-exceptions":
+            ignoreExceptions = true
+        of "ignore-raw-rules":
+            ignoreRawRules = true
+        of "ignore-redirections":
+            ignoreRedirections = true
+        of "skip-blocked":
+            skipBlocked = true
+        of "strip-duplicates":
+            stripDuplicates = true
+        of "strip-empty":
+            stripEmpty = true
+        of "unshort":
+            unshort = true
+        of "launch-in-browser":
+            launch_in_browser = true
+    else:
+        discard
+
+if url == "":
+    if unshort:
+        for stdinUrl in stdin.lines:
+            parsedUrl = unshortUrl(
+                url = stdinUrl,
+                ignoreReferralMarketing = ignoreReferralMarketing,
+                ignoreRules = ignoreRules,
+                ignoreExceptions = ignoreExceptions,
+                ignoreRawRules = ignoreRawRules,
+                ignoreRedirections = ignoreRedirections,
+                skipBlocked = skipBlocked,
+                stripEmpty = stripEmpty,
+                stripDuplicates = stripDuplicates
+            )
+            if launch_in_browser:
+                stderr.write(fmt"Launching URL: {parsedUrl}" & "\n")
+            else:
+                stdout.write(parsedUrl & "\n")
+    else:
+        for stdinUrl in stdin.lines:
+            parsedUrl = clearUrl(
+                url = stdinUrl,
+                ignoreReferralMarketing = ignoreReferralMarketing,
+                ignoreRules = ignoreRules,
+                ignoreExceptions = ignoreExceptions,
+                ignoreRawRules = ignoreRawRules,
+                ignoreRedirections = ignoreRedirections,
+                skipBlocked = skipBlocked,
+                stripEmpty = stripEmpty,
+                stripDuplicates = stripDuplicates
+            )
+            if launch_in_browser:
+                stdout.write(fmt"Launching URL: {parsedUrl}" & "\n")
+            else:
+                stdout.write(parsedUrl & "\n")
+else:
+    if unshort:
+        parsedUrl = unshortUrl(
+            url = url,
+            ignoreReferralMarketing = ignoreReferralMarketing,
+            ignoreRules = ignoreRules,
+            ignoreExceptions = ignoreExceptions,
+            ignoreRawRules = ignoreRawRules,
+            ignoreRedirections = ignoreRedirections,
+            skipBlocked = skipBlocked,
+            stripEmpty = stripEmpty,
+            stripDuplicates = stripDuplicates
+        )
+        if launch_in_browser:
+            stdout.write(fmt"Launching URL: {parsedUrl}" & "\n")
+            openDefaultBrowser(parsedUrl)
+        else:
+            stdout.write(parsedUrl & "\n")
+    else:
+        parsedUrl = clearUrl(
+            url = url,
+            ignoreReferralMarketing = ignoreReferralMarketing,
+            ignoreRules = ignoreRules,
+            ignoreExceptions = ignoreExceptions,
+            ignoreRawRules = ignoreRawRules,
+            ignoreRedirections = ignoreRedirections,
+            skipBlocked = skipBlocked,
+            stripEmpty = stripEmpty,
+            stripDuplicates = stripDuplicates
+        )
+        if launch_in_browser:
+            stderr.write(fmt"Launching URL: {parsedUrl}" & "\n")
+            openDefaultBrowser(parsedUrl)
+        else:
+            stdout.write(parsedUrl & "\n")
