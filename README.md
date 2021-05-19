@@ -7,8 +7,7 @@ This is a Nim port from [Unalix](https://github.com/AmanoTeam/Unalix). Python pa
 Install using `nimble`:
 
 ```bash
-$ nimble install --accept \
-    'git://github.com/AmanoTeam/Unalix-nim'
+nimble install --accept 'git://github.com/AmanoTeam/Unalix-nim'
 ```
 
 #### Library usage:
@@ -45,9 +44,9 @@ https://bitly.com/pages/pricing
 #### CLI usage:
 
 ```bash
-$ unalix --unshort << heredoc
-https://deezer.com/track/891177062?utm_source=deezer
-https://bitly.is/Pricing-Pop-Up
+unalix --unshort <<- heredoc
+    https://deezer.com/track/891177062?utm_source=deezer
+    https://bitly.is/Pricing-Pop-Up
 heredoc
 ```
 
