@@ -1,13 +1,11 @@
-Unalix is a small, dependency-free, fast Nim package (and CLI tool) that implements the same regex rule processing mechanism used by the [ClearURLs](https://github.com/ClearURLs/Addon) addon.
-
-This is a Nim port from [Unalix](https://github.com/AmanoTeam/Unalix). Python package
+Unalix is a library written in Nim, it follows the same specification used by the [ClearURLs](https://github.com/ClearURLs/Addon) addon for removing tracking fields from URLs.
 
 #### Installation
 
 Install using `nimble`:
 
 ```bash
-nimble install --accept 'git://github.com/AmanoTeam/Unalix-nim'
+nimble install --accept 'unalix'
 ```
 
 #### Library usage:
@@ -20,41 +18,19 @@ import unalix/core/url_cleaner
 const url: string = "https://deezer.com/track/891177062?utm_source=deezer"
 let result: string = clearUrl(url)
 
-echo result
-```
-
-Unshort shortened URL:
-
-```nim
-import unalix/core/url_unshort
-
-const url: string = "https://bitly.is/Pricing-Pop-Up"
-let result: string = unshortUrl(url)
-
-echo result
-```
-
-Output from both examples:
-
-```
-https://deezer.com/track/891177062
-https://bitly.com/pages/pricing
+doAssert result == "https://deezer.com/track/891177062"
 ```
 
 #### CLI usage:
 
 ```bash
-unalix --unshort <<- heredoc
-    https://deezer.com/track/891177062?utm_source=deezer
-    https://bitly.is/Pricing-Pop-Up
-heredoc
+unalix --url 'https://deezer.com/track/891177062?utm_source=deezer'
 ```
 
 Output:
 
 ```
 https://deezer.com/track/891177062
-https://bitly.com/pages/pricing
 ```
 
 _Run `unalix --help` to see the list of arguments_
