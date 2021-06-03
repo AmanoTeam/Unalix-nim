@@ -16,7 +16,6 @@ proc compileRulesets(rulesetsList: JsonNode): seq[TableRef[string, Node]] =
 
     var
         table: TableRef[string, Node]
-        jsonNode: JsonNode
         rules, referralMarketing, rawRules, exceptions, redirections: seq[Regex]
 
     for provider in rulesetsList:
