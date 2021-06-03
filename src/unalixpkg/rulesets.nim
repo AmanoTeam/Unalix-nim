@@ -2427,7 +2427,8 @@ let rulesetsNode: JsonNode = %* [
             "position",
             "type",
             "tracking_id",
-            "quantity"
+            "quantity",
+            "reference_id"
         ],
         "rawRules": [],
         "referralMarketing": [],
