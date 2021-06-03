@@ -3,7 +3,6 @@ import strformat
 import browsers
 
 import ./unalixpkg/core/url_cleaner
-import ./unalixpkg/core/url_unshort
 
 const helpMessage: string = """
 usage: unalix [--help] [--version] --url URL
@@ -15,7 +14,6 @@ usage: unalix [--help] [--version] --url URL
               [--skip-blocked]
               [--strip-duplicates]
               [--strip-empty]
-              [--unshort]
               [--launch-in-browser]
 
 Unalix is a small, dependency-free, fast
@@ -28,8 +26,8 @@ optional arguments:
   --version         show version number
                     and exit.
   --url URL         HTTP URL you want to
-                    unshort or remove
-                    tracking fields from
+                    remove tracking
+                    fields from
                     (default: read from
                     stdin)
   --ignore-referral
@@ -64,9 +62,6 @@ optional arguments:
   --strip-empty     instruct Unalix to
                     strip fields with
                     empty values.
-  --unshort         unshort the given
-                    URL (HTTP requests
-                    will be made).
   --launch-in-browser
                     launch URL with
                     user's default
@@ -76,7 +71,7 @@ When no URLs are supplied, default
 action is to read from standard input.
 """
 
-const versionNumber: string = "0.1"
+const versionNumber: string = "0.2"
 
 const commitHash: string = staticExec("git rev-parse HEAD")
 
@@ -93,7 +88,6 @@ const longNoVal: seq[string] = @[ ## Long options that doesn't require values
     "skip-blocked",
     "strip-duplicates",
     "strip-empty",
-    "unshort",
     "launch-in-browser",
     "help",
     "version"
@@ -115,7 +109,6 @@ var
     skipBlocked: bool
     stripDuplicates: bool
     stripEmpty: bool
-    unshort: bool
     launch_in_browser: bool
 
 proc signalHandler() {.noconv.} =
@@ -162,52 +155,15 @@ while true:
             stripDuplicates = true
         of "strip-empty":
             stripEmpty = true
-        of "unshort":
-            unshort = true
         of "launch-in-browser":
             launch_in_browser = true
     else:
         discard
 
 if url == "":
-    if unshort:
-        for stdinUrl in stdin.lines:
-            parsedUrl = unshortUrl(
-                url = stdinUrl,
-                ignoreReferralMarketing = ignoreReferralMarketing,
-                ignoreRules = ignoreRules,
-                ignoreExceptions = ignoreExceptions,
-                ignoreRawRules = ignoreRawRules,
-                ignoreRedirections = ignoreRedirections,
-                skipBlocked = skipBlocked,
-                stripEmpty = stripEmpty,
-                stripDuplicates = stripDuplicates
-            )
-            if launch_in_browser:
-                stderr.write(fmt"Launching URL: {parsedUrl}" & "\n")
-            else:
-                stdout.write(parsedUrl & "\n")
-    else:
-        for stdinUrl in stdin.lines:
-            parsedUrl = clearUrl(
-                url = stdinUrl,
-                ignoreReferralMarketing = ignoreReferralMarketing,
-                ignoreRules = ignoreRules,
-                ignoreExceptions = ignoreExceptions,
-                ignoreRawRules = ignoreRawRules,
-                ignoreRedirections = ignoreRedirections,
-                skipBlocked = skipBlocked,
-                stripEmpty = stripEmpty,
-                stripDuplicates = stripDuplicates
-            )
-            if launch_in_browser:
-                stdout.write(fmt"Launching URL: {parsedUrl}" & "\n")
-            else:
-                stdout.write(parsedUrl & "\n")
-else:
-    if unshort:
-        parsedUrl = unshortUrl(
-            url = url,
+    for stdinUrl in stdin.lines:
+        parsedUrl = clearUrl(
+            url = stdinUrl,
             ignoreReferralMarketing = ignoreReferralMarketing,
             ignoreRules = ignoreRules,
             ignoreExceptions = ignoreExceptions,
@@ -219,23 +175,22 @@ else:
         )
         if launch_in_browser:
             stdout.write(fmt"Launching URL: {parsedUrl}" & "\n")
-            openDefaultBrowser(parsedUrl)
         else:
             stdout.write(parsedUrl & "\n")
+else:
+    parsedUrl = clearUrl(
+        url = url,
+        ignoreReferralMarketing = ignoreReferralMarketing,
+        ignoreRules = ignoreRules,
+        ignoreExceptions = ignoreExceptions,
+        ignoreRawRules = ignoreRawRules,
+        ignoreRedirections = ignoreRedirections,
+        skipBlocked = skipBlocked,
+        stripEmpty = stripEmpty,
+        stripDuplicates = stripDuplicates
+    )
+    if launch_in_browser:
+        stderr.write(fmt"Launching URL: {parsedUrl}" & "\n")
+        openDefaultBrowser(parsedUrl)
     else:
-        parsedUrl = clearUrl(
-            url = url,
-            ignoreReferralMarketing = ignoreReferralMarketing,
-            ignoreRules = ignoreRules,
-            ignoreExceptions = ignoreExceptions,
-            ignoreRawRules = ignoreRawRules,
-            ignoreRedirections = ignoreRedirections,
-            skipBlocked = skipBlocked,
-            stripEmpty = stripEmpty,
-            stripDuplicates = stripDuplicates
-        )
-        if launch_in_browser:
-            stderr.write(fmt"Launching URL: {parsedUrl}" & "\n")
-            openDefaultBrowser(parsedUrl)
-        else:
-            stdout.write(parsedUrl & "\n")
+        stdout.write(parsedUrl & "\n")
