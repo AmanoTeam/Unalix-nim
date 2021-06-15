@@ -71,7 +71,7 @@ When no URLs are supplied, default
 action is to read from standard input.
 """
 
-const versionNumber: string = "0.2"
+const versionNumber: string = "0.3"
 
 const commitHash: string = staticExec("git rev-parse HEAD")
 
