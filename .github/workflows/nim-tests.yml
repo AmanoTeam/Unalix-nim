@@ -1,0 +1,32 @@
+name: Nim tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [
+            ubuntu-latest,
+            macos-latest,
+            windows-latest
+        ]
+        nim-version: [
+            "stable",
+            "devel"
+        ]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Nim ${{ matrix.nim-version }}
+      uses: jiro4989/setup-nim-action@v1
+      with:
+        nim-version: ${{ matrix.nim-version }}
+    - name: Run tests
+      run: nim compile --run tests/test_cleaner.nim
