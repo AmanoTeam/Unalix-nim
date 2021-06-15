@@ -10,18 +10,26 @@ nimble install --accept 'unalix'
 
 #### Library usage:
 
-Removing tracking fields:
+Code:
 
 ```nim
-import unalix/core/url_cleaner
+import unalix
 
 const url: string = "https://deezer.com/track/891177062?utm_source=deezer"
 let result: string = clearUrl(url)
 
-doAssert result == "https://deezer.com/track/891177062"
+echo result
+```
+
+Output:
+
+```
+https://deezer.com/track/891177062
 ```
 
 #### CLI usage:
+
+Code:
 
 ```bash
 unalix --url 'https://deezer.com/track/891177062?utm_source=deezer'

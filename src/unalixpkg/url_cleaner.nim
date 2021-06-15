@@ -5,10 +5,9 @@ import json
 import sugar
 import tables
 
-include ../types
-
-include ../rulesets
-import ../utils
+include ./types
+include ./rulesets
+import ./utils
 
 proc compileRulesets(rulesetsList: JsonNode): seq[TableRef[string, Node]] =
 
