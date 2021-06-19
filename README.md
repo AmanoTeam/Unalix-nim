@@ -8,9 +8,9 @@ Install using `nimble`:
 nimble install --accept 'unalix'
 ```
 
-#### Library usage:
+#### Usage:
 
-Code:
+Library:
 
 ```nim
 import unalix
@@ -21,33 +21,21 @@ let result: string = clearUrl(url)
 echo result
 ```
 
-Output:
-
-```
-https://deezer.com/track/891177062
-```
-
-#### CLI usage:
-
-Code:
+CLI tool:
 
 ```bash
 unalix --url 'https://deezer.com/track/891177062?utm_source=deezer'
 ```
 
-Output:
+Output from both examples:
 
 ```
 https://deezer.com/track/891177062
 ```
 
-_Run `unalix --help` to see the list of arguments_
-
 #### Contributing
 
 If you have discovered a bug in this library and know how to fix it, fork this repository and open a Pull Request.
-
-If you found a URL that was not fully cleaned by Unalix (e.g. some tracking fields still remains), report them here or in the [ClearURLs rules repository](https://gitlab.com/anti-tracking/ClearURLs/rules/-/issues). We use the list of regex rules maintained by the ClearURLs maintainers, but we also have our [own list](https://github.com/AmanoTeam/Unalix/blob/master/unalix/package_data/rulesets/unalix.json).
 
 #### Third party software
 
