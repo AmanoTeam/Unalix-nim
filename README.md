@@ -8,6 +8,12 @@ Install using `nimble`:
 nimble install --accept 'unalix'
 ```
 
+The version from the `master` branch might be broken sometimes, but you can also install from it:
+
+```bash
+nimble install --accept 'git://github.com/AmanoTeam/Unalix-nim.git'
+```
+
 _**Note**: Unalix requires Nim 1.2.0 or higher._
 
 #### Usage:
