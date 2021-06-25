@@ -10,6 +10,7 @@ include ./rulesets
 import ./utils
 
 proc compileRulesets(rulesetsList: JsonNode): seq[TableRef[string, Node]] =
+    ## Compile rulesets from a JsonNode object
 
     var rulesets = newSeq[TableRef[string, Node]]()
 
@@ -21,36 +22,38 @@ proc compileRulesets(rulesetsList: JsonNode): seq[TableRef[string, Node]] =
 
         table = newTable[string, Node]()
 
+        # This field is ignored by Unalix, we are leaving it here just for reference
+        # https://docs.clearurls.xyz/latest/specs/rules/#urlpattern
         table["providerName"] = Node(kind: nkString, strVal: provider["providerName"].getStr())
 
-        # https://docs.clearurls.xyz/1.21.0/specs/rules/#urlpattern
+        # https://docs.clearurls.xyz/latest/specs/rules/#urlpattern
         table["urlPattern"] = Node(kind: nkRegex, regexVal: rex(provider["urlPattern"].getStr()))
 
-        # https://docs.clearurls.xyz/1.21.0/specs/rules/#completeprovider
+        # https://docs.clearurls.xyz/latest/specs/rules/#completeprovider
         table["completeProvider"] = Node(kind: nkBool, boolVal: provider["completeProvider"].getBool())
 
-        # https://docs.clearurls.xyz/1.21.0/specs/rules/#rules
-        rules = block: collect newSeq: (for rule in provider["rules"]: rex(r"(%(?:26|23)|&|^)" & rule.getStr() & r"(?:(?:=|%3[Dd])[^&]*)"))
+        # https://docs.clearurls.xyz/latest/specs/rules/#rules
+        rules = block: collect newSeq: (for rule in provider["rules"]: rex("(%(?:26|23)|&|^)" & rule.getStr() & "(?:(?:=|%3[Dd])[^&]*)"))
         table["rules"] = Node(kind: nkSeqRegex, seqRegexVal: rules)
 
-        # https://docs.clearurls.xyz/1.21.0/specs/rules/#rawrules
+        # https://docs.clearurls.xyz/latest/specs/rules/#rawrules
         rawRules = block: collect newSeq: (for rawRule in provider["rawRules"]: rex(rawRule.getStr()))
         table["rawRules"] = Node(kind: nkSeqRegex, seqRegexVal: rawRules)
 
-        # https://docs.clearurls.xyz/1.21.0/specs/rules/#referralmarketing
-        referralMarketing = block: collect newSeq: (for referral in provider["referralMarketing"]: rex(r"(%(?:26|23)|&|^)" & referral.getStr() & r"(?:(?:=|%3[Dd])[^&]*)"))
+        # https://docs.clearurls.xyz/latest/specs/rules/#referralmarketing
+        referralMarketing = block: collect newSeq: (for referral in provider["referralMarketing"]: rex("(%(?:26|23)|&|^)" & referral.getStr() & "(?:(?:=|%3[Dd])[^&]*)"))
         table["referralMarketing"] = Node(kind: nkSeqRegex, seqRegexVal: referralMarketing)
 
-        # https://docs.clearurls.xyz/1.21.0/specs/rules/#exceptions
+        # https://docs.clearurls.xyz/latest/specs/rules/#exceptions
         exceptions = block: collect newSeq: (for exception in provider["exceptions"]: rex(exception.getStr()))
         table["exceptions"] = Node(kind: nkSeqRegex, seqRegexVal: exceptions)
 
-        # https://docs.clearurls.xyz/1.21.0/specs/rules/#redirections
-        redirections = block: collect newSeq: (for redirection in provider["redirections"]: rex(redirection.getStr() & r".*"))
+        # https://docs.clearurls.xyz/latest/specs/rules/#redirections
+        redirections = block: collect newSeq: (for redirection in provider["redirections"]: rex(redirection.getStr() & ".*"))
         table["redirections"] = Node(kind: nkSeqRegex, seqRegexVal: redirections)
 
-        # https://docs.clearurls.xyz/1.21.0/specs/rules/#forceredirection
         # This field is ignored by Unalix, we are leaving it here just for reference
+        # https://docs.clearurls.xyz/latest/specs/rules/#forceredirection
         table["forceRedirection"] = Node(kind: nkBool, boolVal: provider["forceRedirection"].getBool())
 
         rulesets.add(table)
@@ -113,36 +116,36 @@ proc clearUrl(
     ##      Common rules (used to remove tracking fields found in the URL query)
     ##
     ##          .. code-block::
-    ##            from unalix import clearUrl
+    ##            import unalix
     ##
-    ##            var url = "https://deezer.com/track/891177062?utm_source=deezer"
+    ##            const url: string = "https://deezer.com/track/891177062?utm_source=deezer"
     ##
     ##            doAssert clearUrl(url) == "https://deezer.com/track/891177062"
     ##
     ##      Redirection rules (used to extract redirect URLs found in any part of the URL)
     ##
     ##          .. code-block::
-    ##            from unalix import clearUrl
+    ##            import unalix
     ##
-    ##            var url = "https://www.google.com/url?q=https://pypi.org/project/Unalix"
+    ##            const url: string = "https://www.google.com/url?q=https://pypi.org/project/Unalix"
     ##
     ##            doAssert clearUrl(url) == "https://pypi.org/project/Unalix"
     ##
     ##      Raw rules (used to remove tracking elements found in any part of the URL)
     ##
     ##          .. code-block::
-    ##            from unalix import clearUrl
+    ##            import unalix
     ##
-    ##            var url = "https://www.amazon.com/gp/B08CH7RHDP/ref=as_li_ss_tl"
+    ##            const url: string = "https://www.amazon.com/gp/B08CH7RHDP/ref=as_li_ss_tl"
     ##
     ##            doAssert clearUrl(url) == "https://www.amazon.com/gp/B08CH7RHDP"
     ##
     ##      Referral marketing rules (used to remove referral marketing fields found in the URL query)
     ##
     ##          .. code-block::
-    ##            from unalix import clearUrl
+    ##            import unalix
     ##
-    ##            var url = "https://natura.com.br/p/2458?consultoria=promotop"
+    ##            const url: string = "https://natura.com.br/p/2458?consultoria=promotop"
     ##
     ##            doAssert clearUrl(url) == "https://natura.com.br/p/2458"
     ##
@@ -160,9 +163,11 @@ proc clearUrl(
             if skipBlocked and ruleset["completeProvider"].boolVal:
                 continue
 
+            # https://docs.clearurls.xyz/latest/specs/rules/#urlpattern
             if match(parsedUrl, ruleset["urlPattern"].regexVal):
                 if not ignoreExceptions:
                     exceptionMatched = false
+                    # https://docs.clearurls.xyz/latest/specs/rules/#exceptions
                     for exception in ruleset["exceptions"].seqRegexVal:
                         if match(parsedUrl, exception):
                             exceptionMatched = true
@@ -171,6 +176,7 @@ proc clearUrl(
                         continue
 
                 if not ignoreRedirections:
+                    # https://docs.clearurls.xyz/latest/specs/rules/#redirections
                     for redirection in ruleset["redirections"].seqRegexVal:
                         redirectionResult = replacef(parsedUrl, redirection, "$1")
 
@@ -183,7 +189,7 @@ proc clearUrl(
 
                         uri = parseUri(decodeUrl(redirectionResult, decodePlus = false))
 
-                        # https://github.com/ClearURLs/Addon/issues/71
+                        # Workaround for URLs without scheme (see https://github.com/ClearURLs/Addon/issues/71)
                         if uri.scheme == "":
                             uri.scheme = "http"
 
@@ -203,12 +209,15 @@ proc clearUrl(
 
                 if uri.query != "":
                     if not ignoreRules:
+                        # https://docs.clearurls.xyz/latest/specs/rules/#rules
                         for rule in ruleset["rules"].seqRegexVal:
                             uri.query = replacef(uri.query, rule, "$1")
                     if not ignoreReferralMarketing:
+                        # https://docs.clearurls.xyz/latest/specs/rules/#referralmarketing
                         for referral in ruleset["referralMarketing"].seqRegexVal:
                             uri.query = replacef(uri.query, referral, "$1")
 
+                # The anchor might contains tracking fields as well
                 if uri.anchor != "":
                     if not ignoreRules:
                         for rule in ruleset["rules"].seqRegexVal:
@@ -219,6 +228,7 @@ proc clearUrl(
 
                 if uri.path != "":
                     if not ignoreRawRules:
+                        # https://docs.clearurls.xyz/latest/specs/rules/#rawrules
                         for rawRule in ruleset["rawRules"].seqRegexVal:
                             uri.path = replacef(uri.path, rawRule, "$1")
 

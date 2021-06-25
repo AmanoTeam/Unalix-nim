@@ -14,7 +14,7 @@ usage: unalix [--help] [--version] --url URL
               [--skip-blocked]
               [--strip-duplicates]
               [--strip-empty]
-              [--launch-in-browser]
+              [--launch]
 
 Unalix is a small, dependency-free, fast
 Nim package (and CLI tool) for removing
@@ -34,27 +34,27 @@ optional arguments:
                     instruct Unalix to
                     not remove referral
                     marketing fields
-                    from the given URL.
+                    from the given URL(s).
   --ignore-rules    instruct Unalix to
                     not remove tracking
                     fields from the
-                    given URL.
+                    given URL(s).
   --ignore-exceptions
                     instruct Unalix to
                     ignore exceptions
-                    for the given URL.
+                    for the given URL(s).
   --ignore-raw-rules
                     instruct Unalix to
                     ignore raw rules for
-                    the given URL.
+                    the given URL(s).
   --ignore-redirections
                     instruct Unalix to
                     ignore redirection
                     rules for the given
-                    URL.
+                    URL(s).
   --skip-blocked    instruct Unalix to
                     not process rules
-                    for blocked URLs.
+                    for blocked URLs
   --strip-duplicates
                     instruct Unalix to
                     strip fields with
@@ -62,8 +62,8 @@ optional arguments:
   --strip-empty     instruct Unalix to
                     strip fields with
                     empty values.
-  --launch-in-browser
-                    launch URL with
+  --launch
+                    launch URL(s) with
                     user's default
                     browser.
 
@@ -73,11 +73,14 @@ action is to read from standard input.
 
 const versionNumber: string = "0.3"
 
-const commitHash: string = staticExec("git rev-parse HEAD")
+const repository: string = staticExec("git config --get remote.origin.url")
+const commitHash: string = staticExec("git rev-parse --short HEAD")
 
-const versionInfo: string = fmt"Unalix v{versionNumber} (+{commitHash})" &
+const versionInfo: string = fmt"Unalix v{versionNumber} ({repository}@{commitHash})" &
     "\n" &
-    fmt"Compiled on {hostOS} ({hostCPU}) using Nim v{NimVersion}"
+    fmt"Compiled for {hostOS} ({hostCPU}) using Nim {NimVersion}" &
+    fmt"({CompileDate}, {CompileTime})" &
+    "\n"
 
 const longNoVal: seq[string] = @[ ## Long options that doesn't require values
     "ignore-referral",
@@ -88,7 +91,7 @@ const longNoVal: seq[string] = @[ ## Long options that doesn't require values
     "skip-blocked",
     "strip-duplicates",
     "strip-empty",
-    "launch-in-browser",
+    "launch",
     "help",
     "version"
 ]
@@ -155,7 +158,7 @@ while true:
             stripDuplicates = true
         of "strip-empty":
             stripEmpty = true
-        of "launch-in-browser":
+        of "launch":
             launch_in_browser = true
     else:
         discard
@@ -174,7 +177,7 @@ if url == "":
             stripDuplicates = stripDuplicates
         )
         if launch_in_browser:
-            stdout.write(fmt"Launching URL: {parsedUrl}" & "\n")
+            stdout.write(fmt"Launching: {parsedUrl}" & "\n")
         else:
             stdout.write(parsedUrl & "\n")
 else:
@@ -190,7 +193,7 @@ else:
         stripDuplicates = stripDuplicates
     )
     if launch_in_browser:
-        stderr.write(fmt"Launching URL: {parsedUrl}" & "\n")
+        stderr.write(fmt"Launching: {parsedUrl}" & "\n")
         openDefaultBrowser(parsedUrl)
     else:
         stdout.write(parsedUrl & "\n")
