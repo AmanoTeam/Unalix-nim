@@ -1,6 +1,6 @@
 import json
 
-let rulesetsNode: JsonNode = %* [
+let rulesetsNode*: JsonNode = %* [
     {
         "providerName": "amazon",
         "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?amazon(?:\\.[a-z]{2,}){1,}",
