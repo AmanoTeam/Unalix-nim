@@ -16,9 +16,9 @@ nimble install --accept 'git://github.com/AmanoTeam/Unalix-nim.git'
 
 _**Note**: Unalix requires Nim 1.2.0 or higher._
 
-#### Usage:
+#### Library usage
 
-Library:
+Remove tracking fields:
 
 ```nim
 import unalix
@@ -29,16 +29,36 @@ let result: string = clearUrl(url)
 echo result
 ```
 
-CLI tool:
+Unshort shortened URL:
+
+```nim
+import unalix
+
+const url: string = "https://bitly.is/Pricing-Pop-Up"
+let result: string = unshortUrl(url)
+
+echo result
+```
+
+#### CLI tool usage
+
+Remove tracking fields:
 
 ```bash
 unalix --url 'https://deezer.com/track/891177062?utm_source=deezer'
+```
+
+Unshort shortened URL:
+
+```bash
+unalix --unshort --url 'https://bitly.is/Pricing-Pop-Up'
 ```
 
 Output from both examples:
 
 ```
 https://deezer.com/track/891177062
+https://bitly.com/pages/pricing
 ```
 
 #### Contributing
