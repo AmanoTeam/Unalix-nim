@@ -3,6 +3,7 @@ import strformat
 import browsers
 
 import ./core
+import ./exceptions
 
 const helpMessage: string = """
 usage: unalix [-h] [-v] -u URL
@@ -223,17 +224,21 @@ if url == "":
             stdout.write(newUrl & "\n")
 else:
     if unshort:
-        newUrl = unshortUrl(
-            url = url,
-            ignoreReferralMarketing = ignoreReferralMarketing,
-            ignoreRules = ignoreRules,
-            ignoreExceptions = ignoreExceptions,
-            ignoreRawRules = ignoreRawRules,
-            ignoreRedirections = ignoreRedirections,
-            skipBlocked = skipBlocked,
-            stripEmpty = stripEmpty,
-            stripDuplicates = stripDuplicates
-        )
+        try:
+            newUrl = unshortUrl(
+                url = url,
+                ignoreReferralMarketing = ignoreReferralMarketing,
+                ignoreRules = ignoreRules,
+                ignoreExceptions = ignoreExceptions,
+                ignoreRawRules = ignoreRawRules,
+                ignoreRedirections = ignoreRedirections,
+                skipBlocked = skipBlocked,
+                stripEmpty = stripEmpty,
+                stripDuplicates = stripDuplicates
+            )
+        except ConnectError as e:
+            stderr.write(fmt"unalix: exception: {e.msg}" & "\n")
+            newUrl = e.url
     else:
         newUrl = clearUrl(
             url = url,
