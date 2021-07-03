@@ -15,8 +15,8 @@ doAssert clearUrl(unmodifiedUrl, ignoreRedirections = true) == unmodifiedUrl
 unmodifiedUrl = "https://www.google.com/amp/s/de.statista.com/infografik/amp/22496/anzahl-der-gesamten-positiven-corona-tests-und-positivenrate/"
 doAssert clearUrl(unmodifiedUrl) == "http://de.statista.com/infografik/amp/22496/anzahl-der-gesamten-positiven-corona-tests-und-positivenrate/"
 
-unmodifiedUrl = "http://www.shareasale.com/r.cfm?u=1384175&b=866986&m=65886&afftrack=&urllink=www.rightstufanime.com%2Fsearch%3Fkeywords%3DTo%20Your%20Eternity"
-doAssert clearUrl(unmodifiedUrl) == "http://www.rightstufanime.com/search?keywords=To%20Your%20Eternity"
+unmodifiedUrl = "http://www.shareasale.com/r.cfm?u=1384175&b=866986&m=65886&afftrack=&urllink=www.rightstufanime.com%2Fsearch%3Fkeywords%3DSo%20I%27m%20a%20Spider%20So%20What%3F"
+doAssert clearUrl(unmodifiedUrl) == "http://www.rightstufanime.com/search?keywords=So%20I'm%20a%20Spider%20So%20What%3F"
 
 unmodifiedUrl = "https://www.amazon.com/gp/B08CH7RHDP/ref=as_li_ss_tl"
 
