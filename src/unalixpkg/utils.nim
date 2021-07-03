@@ -94,6 +94,7 @@ proc filterQuery(
         values = block: collect newSeq: (for index in 1 ..< len(parts): parts[index])
 
         value = values.join("%3D")
+        value = replace(value, "?", "%3F")
 
         # Ignore field with empty value
         if stripEmpty and len(value) == 0:
