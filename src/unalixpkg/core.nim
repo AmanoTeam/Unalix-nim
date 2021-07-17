@@ -436,7 +436,7 @@ proc unshortUrl*(
             "Accept: */*\n" &
             "Accept-Encoding: identity\n" &
             "Connection: close\n" &
-            "User-Agent: Unalix/0.5 (+https://github.com/AmanoTeam/Unalix-nim)\n\n"
+            "User-Agent: Unalix/0.5.1 (+https://github.com/AmanoTeam/Unalix-nim)\n\n"
         )
 
         response = ""
@@ -715,7 +715,7 @@ proc asyncUnshortUrl*(
             "Accept: */*\n" &
             "Accept-Encoding: identity\n" &
             "Connection: close\n" &
-            "User-Agent: Unalix/0.5 (+https://github.com/AmanoTeam/Unalix-nim)\n\n"
+            "User-Agent: Unalix/0.5.1 (+https://github.com/AmanoTeam/Unalix-nim)\n\n"
         )
 
         response = ""
