@@ -350,12 +350,27 @@ proc unshortUrl*(
             resolverSocket = newSocket()
             wrapSocket(context, resolverSocket)
 
-            resolverSocket.connect("1.1.1.1", Port(443))
-            resolverSocket.send(
-                "GET /dns-query?name=" & uri.hostname & "&type=A HTTP/1.0\n" &
-                "Host: cloudflare-dns.com\n" &
-                "Accept: application/dns-json\n\n"
-            )
+            try:
+                resolverSocket.connect("1.1.1.1", Port(443))
+                resolverSocket.send(
+                    "GET /dns-query?name=" & uri.hostname & "&type=A HTTP/1.0\n" &
+                    "Host: cloudflare-dns.com\n" &
+                    "Accept: application/dns-json\n\n"
+                )
+            except Exception as e:
+                resolverSocket.close()
+                genericSocket.close()
+
+                var err:
+                    ResolverError
+
+                new(err)
+
+                err.msg = "No address associated with hostname"
+                err.url = newUrl
+                err.parent = e
+
+                raise err
 
             response = ""
 
@@ -429,15 +444,29 @@ proc unshortUrl*(
 
         uri.path = (if uri.path == "": "/" else: uri.path)
 
-        genericSocket.connect(genericAddress, Port(genericPort))
-        genericSocket.send(
-            "GET " & (if uri.query != "": uri.path & "?" & uri.query else: uri.path) & " HTTP/1.0\n" &
-            "Host: " & uri.hostname & "\n" &
-            "Accept: */*\n" &
-            "Accept-Encoding: identity\n" &
-            "Connection: close\n" &
-            "User-Agent: Unalix/0.5.1 (+https://github.com/AmanoTeam/Unalix-nim)\n\n"
-        )
+        try:
+            genericSocket.connect(genericAddress, Port(genericPort))
+            genericSocket.send(
+                "GET " & (if uri.query != "": uri.path & "?" & uri.query else: uri.path) & " HTTP/1.0\n" &
+                "Host: " & uri.hostname & "\n" &
+                "Accept: */*\n" &
+                "Accept-Encoding: identity\n" &
+                "Connection: close\n" &
+                "User-Agent: Unalix/0.5.1 (+https://github.com/AmanoTeam/Unalix-nim)\n\n"
+            )
+        except Exception as e:
+            genericSocket.close()
+
+            var err:
+                ConnectError
+
+            new(err)
+
+            err.msg = "Connection error"
+            err.url = newUrl
+            err.parent = e
+
+            raise err
 
         response = ""
 
@@ -629,12 +658,27 @@ proc asyncUnshortUrl*(
             resolverSocket = newAsyncSocket()
             wrapSocket(context, resolverSocket)
 
-            await resolverSocket.connect("1.1.1.1", Port(443))
-            await resolverSocket.send(
-                "GET /dns-query?name=" & uri.hostname & "&type=A HTTP/1.0\n" &
-                "Host: cloudflare-dns.com\n" &
-                "Accept: application/dns-json\n\n"
-            )
+            try:
+                await resolverSocket.connect("1.1.1.1", Port(443))
+                await resolverSocket.send(
+                    "GET /dns-query?name=" & uri.hostname & "&type=A HTTP/1.0\n" &
+                    "Host: cloudflare-dns.com\n" &
+                    "Accept: application/dns-json\n\n"
+                )
+            except Exception as e:
+                resolverSocket.close()
+                genericSocket.close()
+
+                var err:
+                    ResolverError
+
+                new(err)
+
+                err.msg = "No address associated with hostname"
+                err.url = newUrl
+                err.parent = e
+
+                raise err
 
             response = ""
 
@@ -708,15 +752,29 @@ proc asyncUnshortUrl*(
 
         uri.path = (if uri.path == "": "/" else: uri.path)
 
-        await genericSocket.connect(genericAddress, Port(genericPort))
-        await genericSocket.send(
-            "GET " & (if uri.query != "": uri.path & "?" & uri.query else: uri.path) & " HTTP/1.0\n" &
-            "Host: " & uri.hostname & "\n" &
-            "Accept: */*\n" &
-            "Accept-Encoding: identity\n" &
-            "Connection: close\n" &
-            "User-Agent: Unalix/0.5.1 (+https://github.com/AmanoTeam/Unalix-nim)\n\n"
-        )
+        try:
+            await genericSocket.connect(genericAddress, Port(genericPort))
+            await genericSocket.send(
+                "GET " & (if uri.query != "": uri.path & "?" & uri.query else: uri.path) & " HTTP/1.0\n" &
+                "Host: " & uri.hostname & "\n" &
+                "Accept: */*\n" &
+                "Accept-Encoding: identity\n" &
+                "Connection: close\n" &
+                "User-Agent: Unalix/0.5.1 (+https://github.com/AmanoTeam/Unalix-nim)\n\n"
+            )
+        except Exception as e:
+            genericSocket.close()
+
+            var err:
+                ConnectError
+
+            new(err)
+
+            err.msg = "Connection error"
+            err.url = newUrl
+            err.parent = e
+
+            raise err
 
         response = ""
 
