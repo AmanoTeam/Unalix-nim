@@ -90,7 +90,7 @@ optional arguments:
 """
 
 const
-    versionNumber: string = "0.4"
+    versionNumber: string = "0.5"
     repository: string = staticExec("git config --get remote.origin.url")
     commitHash: string = staticExec("git rev-parse --short HEAD")
     versionInfo: string = fmt"Unalix v{versionNumber} ({repository}@{commitHash})" &

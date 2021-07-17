@@ -8,7 +8,7 @@ Install using `nimble`:
 nimble install --accept 'unalix'
 ```
 
-_**Note**: Unalix requires Nim 1.2.0 or higher._
+_**Note**: Unalix requires Nim 1.4.0 or higher._
 
 #### Library usage
 
