@@ -1,3 +1,4 @@
+import asyncdispatch
 import parseopt
 import strformat
 import browsers
@@ -17,109 +18,113 @@ usage: unalix [-h] [-v] -u URL
               [--strip-empty] [-s] [-l]
 
 Unalix is a small, dependency-free, fast
-Nim package (and CLI tool) for removing
+Nim package and CLI tool for removing
 tracking fields from URLs.
 
 optional arguments:
   -h, --help        show this help
                     message and exit
   -v, --version     show version number
-                    and exit.
+                    and exit
   -u URL, --url URL
                     HTTP URL you want to
                     unshort or remove
-                    tracking fields from
-                    (default: read from
-                    stdin)
+                    tracking fields
+                    from. [default: read
+                    from standard input]
   --ignore-referral
-                    instruct Unalix to
+                    Instruct Unalix to
                     not remove referral
                     marketing fields
                     from the given URL.
-  --ignore-rules    instruct Unalix to
+                    [default: remove]
+  --ignore-rules    Instruct Unalix to
                     not remove tracking
                     fields from the
-                    given URL.
+                    given URL. [default:
+                    don't ignore]
   --ignore-exceptions
-                    instruct Unalix to
+                    Instruct Unalix to
                     ignore exceptions
                     for the given URL.
+                    [default: don't
+                    ignore]
   --ignore-raw-rules
-                    instruct Unalix to
+                    Instruct Unalix to
                     ignore raw rules for
                     the given URL.
+                    [default: don't
+                    ignore]
   --ignore-redirections
-                    instruct Unalix to
+                    Instruct Unalix to
                     ignore redirection
                     rules for the given
-                    URL.
-  --skip-blocked    instruct Unalix to
-                    not process rules
-                    for blocked URLs.
+                    URL. [default: don't
+                    ignore]
+  --skip-blocked    Instruct Unalix to
+                    ignore rule
+                    processing for
+                    blocked URLs.
+                    [default: don't
+                    ignore]
   --strip-duplicates
-                    instruct Unalix to
+                    Instruct Unalix to
                     strip fields with
                     duplicate names.
-  --strip-empty     instruct Unalix to
+                    [default: don't
+                    strip]
+  --strip-empty     Instruct Unalix to
                     strip fields with
                     empty values.
-  -s, --unshort     unshort the given
+                    [default: don't
+                    strip]
+  -s, --unshort     Unshort the given
                     URL (HTTP requests
                     will be made).
-  -l, --launch      launch URL with
+                    [default: don't try
+                    to unshort]
+  -l, --launch      Launch URL with
                     user's default
-                    browser.
-
-When no URLs are supplied, default
-action is to read from standard input.
+                    browser. [default:
+                    don't launch]
 """
 
-const versionNumber: string = "0.4"
-
-const repository: string = staticExec("git config --get remote.origin.url")
-const commitHash: string = staticExec("git rev-parse --short HEAD")
-
-const versionInfo: string = fmt"Unalix v{versionNumber} ({repository}@{commitHash})" &
-    "\n" &
-    fmt"Compiled for {hostOS} ({hostCPU}) using Nim {NimVersion}" &
-    fmt"({CompileDate}, {CompileTime})" &
-    "\n"
-
-const longNoVal: seq[string] = @[ ## Long options that doesn't require values
-    "ignore-referral",
-    "ignore-rules",
-    "ignore-exceptions",
-    "ignore-raw-rules",
-    "ignore-redirections",
-    "skip-blocked",
-    "strip-duplicates",
-    "strip-empty",
-    "launch",
-    "help",
-    "version",
-    "unshort"
-]
-
-const shortNoVal: set[char] = { ## Short options that doesn't require values
-    'h',
-    'v',
-    'l'
-}
+const
+    versionNumber: string = "0.4"
+    repository: string = staticExec("git config --get remote.origin.url")
+    commitHash: string = staticExec("git rev-parse --short HEAD")
+    versionInfo: string = fmt"Unalix v{versionNumber} ({repository}@{commitHash})" &
+        "\n" &
+        fmt"Compiled for {hostOS} ({hostCPU}) using Nim {NimVersion}" &
+        fmt"({CompileDate}, {CompileTime})" &
+        "\n"
+    longNoVal: seq[string] = @[
+        "ignore-referral",
+        "ignore-rules",
+        "ignore-exceptions",
+        "ignore-raw-rules",
+        "ignore-redirections",
+        "skip-blocked",
+        "strip-duplicates",
+        "strip-empty",
+        "launch",
+        "help",
+        "version",
+        "unshort"
+    ]
+    shortNoVal: set[char] = {
+        'h',
+        'v',
+        'l',
+        's'
+    }
 
 var
-    url: string
-    newUrl: string
-    argument: string
-    ignoreReferralMarketing: bool
-    ignoreRules: bool
-    ignoreExceptions: bool
-    ignoreRawRules: bool
-    ignoreRedirections: bool
-    skipBlocked: bool
-    stripDuplicates: bool
-    stripEmpty: bool
-    launch: bool
-    unshort: bool
+    url, newUrl, argument: string
+    ignoreReferralMarketing, ignoreRules, ignoreExceptions, ignoreRawRules: bool
+    ignoreRedirections, skipBlocked, stripDuplicates, stripEmpty: bool
+    launch, unshort: bool
+    parser: OptParser
 
 proc signalHandler() {.noconv.} =
     stdout.write("\n")
@@ -127,7 +132,7 @@ proc signalHandler() {.noconv.} =
 
 setControlCHook(signalHandler)
 
-var parser = initOptParser(longNoVal = longNoVal, shortNoVal = shortNoVal)
+parser = initOptParser(longNoVal = longNoVal, shortNoVal = shortNoVal)
 
 while true:
     parser.next()
@@ -137,16 +142,10 @@ while true:
         break
     of cmdShortOption, cmdLongOption:
         case parser.key
-        of "version":
+        of "version", "v":
             stdout.write(versionInfo)
             quit(0)
-        of "v":
-            stdout.write(versionInfo)
-            quit(0)
-        of "help":
-            stdout.write(helpMessage)
-            quit(0)
-        of "h":
+        of "help", "h":
             stdout.write(helpMessage)
             quit(0)
         of "url":
@@ -177,13 +176,9 @@ while true:
             stripDuplicates = true
         of "strip-empty":
             stripEmpty = true
-        of "launch":
+        of "launch", "l":
             launch = true
-        of "l":
-            launch = true
-        of "unshort":
-            unshort = true
-        of "s":
+        of "unshort", "s":
             unshort = true
         else:
             argument = if len(parser.key) > 1: fmt("--{parser.key}") else: fmt("-{parser.key}")
@@ -195,7 +190,7 @@ while true:
 if url == "":
     for stdinUrl in stdin.lines:
         if unshort:
-            newUrl = unshortUrl(
+            newUrl = waitFor asyncUnshortUrl(
                 url = stdinUrl,
                 ignoreReferralMarketing = ignoreReferralMarketing,
                 ignoreRules = ignoreRules,
@@ -225,7 +220,7 @@ if url == "":
 else:
     if unshort:
         try:
-            newUrl = unshortUrl(
+            newUrl = waitFor asyncUnshortUrl(
                 url = url,
                 ignoreReferralMarketing = ignoreReferralMarketing,
                 ignoreRules = ignoreRules,

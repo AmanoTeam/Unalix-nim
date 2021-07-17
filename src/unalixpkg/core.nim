@@ -1,6 +1,8 @@
 import sugar
 import tables
 import net
+import asyncnet
+import asyncdispatch
 import strutils
 import json
 import uri
@@ -63,7 +65,10 @@ proc compileRulesets(rulesetsList: JsonNode): seq[TableRef[string, Node]] =
 
     result = rulesets
 
-let rulesetsTable = compileRulesets(rulesetsNode)
+var
+    rulesetsTable {.threadvar.}: seq[TableRef[string, Node]]
+
+rulesetsTable = compileRulesets(rulesetsNode)
 
 proc clearUrl*(
     url: string,
@@ -441,6 +446,285 @@ proc unshortUrl*(
 
             try:
                 count = genericSocket.recv(data = chunk, size = 1024, timeout = 3000)
+            except Exception as e:
+                genericSocket.close()
+
+                var err:
+                    ReadError
+
+                err.msg = e.msg
+                err.url = newUrl
+                err.parent = e
+
+                raise err
+
+            if count < 1:
+                break
+
+            response.add(chunk)
+
+        genericSocket.close()
+
+        (headers, body) = response.split("\r\n\r\n", maxsplit = 1)
+
+        headersSeq = newSeq[(string, string)]()
+
+        for (index, header) in pairs(headers.split("\r\n")):
+            # This index is not a header
+            if index == 0:
+                (httpVersion, statusCode, statusMessage) = header.split(" ", maxsplit = 2)
+                continue
+
+            (key, value) = header.split(": ", maxsplit = 1)
+
+            headersSeq.add((key, value))
+
+        genericResponse = initResponse(
+            httpVersion = parseFloat(httpVersion.split("/")[1]),
+            statusCode = parseInt(statusCode),
+            statusMessage = statusMessage,
+            headers = headersSeq,
+            body = body
+        )
+
+        if genericResponse.hasHeader("Location"):
+            redirectLocation = genericResponse.getHeader("Location")
+        elif genericResponse.hasHeader("Content-Location"):
+            redirectLocation = genericResponse.getHeader("Content-Location")
+        else:
+            break
+
+        if redirectLocation != "":
+            redirectLocation = redirectLocation.replace(" ", "%20")
+
+            if not (redirectLocation.startsWith("https://") or redirectLocation.startsWith("http://")):
+                if redirectLocation.startsWith("//"):
+                    redirectLocation = uri.scheme & "://" & replacef(redirectLocation, re"^/*", "") 
+                elif redirectLocation.startsWith("/"):
+                    redirectLocation = uri.scheme & "://" & uri.hostname & redirectLocation
+                else:
+                    redirectLocation = uri.scheme & "://" & uri.hostname & (if uri.path != "/": parentDir(uri.path) else: uri.path) & redirectLocation
+
+            if redirectLocation == newUrl:
+                break
+
+            totalRedirects += 1
+
+            # Strip tracking fields from the redirect URL
+            newUrl = clearUrl(
+                url = redirectLocation,
+                ignoreReferralMarketing = ignoreReferralMarketing,
+                ignoreRules = ignoreRules,
+                ignoreExceptions = ignoreExceptions,
+                ignoreRawRules = ignoreRawRules,
+                ignoreRedirections = ignoreRedirections,
+                skipBlocked = skipBlocked,
+                stripDuplicates = stripDuplicates,
+                stripEmpty = stripEmpty
+            )
+
+            if totalRedirects > maxRedirects:
+                var
+                    err: TooManyRedirectsError
+
+                new(err)
+
+                err.msg = "Exceeded maximum allowed redirects"
+                err.url = newUrl
+
+                raise err
+
+            continue
+
+        break
+
+
+proc asyncUnshortUrl*(
+    url: string,
+    ignoreReferralMarketing: bool = false,
+    ignoreRules: bool = false,
+    ignoreExceptions: bool = false,
+    ignoreRawRules: bool = false,
+    ignoreRedirections: bool = false,
+    skipBlocked: bool = false,
+    stripDuplicates: bool = false,
+    stripEmpty: bool = false
+): Future[string] {.async, gcsafe.} =
+
+    var
+        redirectLocation: string
+        totalRedirects = 0
+        newUrl: string
+
+    var
+        resolverSocket: AsyncSocket
+        genericSocket: AsyncSocket
+        genericPort: int
+        resolverResponse: Response
+        genericResponse: Response
+        dnsAnswer: JsonNode
+        uri: Uri
+        dnsCache: TableRef[string, string]
+
+    let
+        context: SslContext = newContext()
+        maxRedirects: int = 13
+
+    var
+        response: string
+        chunk: string
+        count: int
+
+    var
+        httpVersion, statusCode, statusMessage: string
+        key, value: string
+        headers, body: string
+        headersSeq: seq[(string, string)]
+
+    var
+        genericAddress: string
+
+    newUrl = clearUrl(
+        url = url,
+        ignoreReferralMarketing = ignoreReferralMarketing,
+        ignoreRules = ignoreRules,
+        ignoreExceptions = ignoreExceptions,
+        ignoreRawRules = ignoreRawRules,
+        ignoreRedirections = ignoreRedirections,
+        skipBlocked = skipBlocked,
+        stripDuplicates = stripDuplicates,
+        stripEmpty = stripEmpty
+    )
+
+    dnsCache = newTable[string, string]()
+
+    while true:
+        result = newUrl
+
+        uri = parseUri(newUrl)
+
+        genericSocket = newAsyncSocket()
+
+        if uri.scheme == "http":
+            genericPort = (if uri.port == "": 80 else: parseInt(uri.port))
+        elif uri.scheme == "https":
+            wrapSocket(context, genericSocket)
+            genericPort = (if uri.port == "": 443 else: parseInt(uri.port))
+        else:
+            genericSocket.close()
+
+            var
+                err: UnsupportedProtocolError
+
+            new(err)
+
+            err.msg = "Unrecognized URI or unsupported protocol"
+            err.url = newUrl
+
+            raise err
+
+        if dnsCache.hasKey(uri.hostname):
+            genericAddress = dnsCache[uri.hostname]
+        else:
+            resolverSocket = newAsyncSocket()
+            wrapSocket(context, resolverSocket)
+
+            await resolverSocket.connect("1.1.1.1", Port(443))
+            await resolverSocket.send(
+                "GET /dns-query?name=" & uri.hostname & "&type=A HTTP/1.0\n" &
+                "Host: cloudflare-dns.com\n" &
+                "Accept: application/dns-json\n\n"
+            )
+
+            response = ""
+
+            while true:
+
+                try:
+                    chunk = await resolverSocket.recv(size = 1024)
+                    count = len(chunk)
+                except Exception as e:
+                    resolverSocket.close()
+                    genericSocket.close()
+
+                    var err:
+                        ReadError
+
+                    new(err)
+
+                    err.msg = e.msg
+                    err.url = newUrl
+                    err.parent = e
+
+                    raise err
+
+                if count < 1:
+                    break
+
+                response.add(chunk)
+
+            resolverSocket.close()
+
+            (headers, body) = response.split("\r\n\r\n", maxsplit = 1)
+
+            headersSeq = newSeq[(string, string)]()
+
+            for (index, header) in pairs(headers.split("\r\n")):
+                # This index is not a header
+                if index == 0:
+                    (httpVersion, statusCode, statusMessage) = header.split(" ", maxsplit = 2)
+                    continue
+
+                (key, value) = header.split(": ", maxsplit = 1)
+
+                headersSeq.add((key, value))
+
+            resolverResponse = initResponse(
+                httpVersion = parseFloat(httpVersion.split("/")[1]),
+                statusCode = parseInt(statusCode),
+                statusMessage = statusMessage,
+                headers = headersSeq,
+                body = body
+            )
+            dnsAnswer = resolverResponse.getJson()
+
+            if not dnsAnswer.hasKey("Answer"):
+                var err:
+                    ResolverError
+
+                new(err)
+
+                err.msg = "No address associated with hostname"
+                err.url = newUrl
+
+                raise err
+
+            for answer in dnsAnswer["Answer"]:
+                genericAddress = answer["data"].getStr()
+                if genericAddress.isIpAddress():
+                    break
+
+            dnsCache[uri.hostname] = genericAddress
+
+        uri.path = (if uri.path == "": "/" else: uri.path)
+
+        await genericSocket.connect(genericAddress, Port(genericPort))
+        await genericSocket.send(
+            "GET " & (if uri.query != "": uri.path & "?" & uri.query else: uri.path) & " HTTP/1.0\n" &
+            "Host: " & uri.hostname & "\n" &
+            "Accept: */*\n" &
+            "Accept-Encoding: identity\n" &
+            "Connection: close\n" &
+            "User-Agent: Unalix/0.4 (+https://github.com/AmanoTeam/Unalix-nim)\n\n"
+        )
+
+        response = ""
+
+        while not ("\r\n\r\n" in response):
+
+            try:
+                chunk = await genericSocket.recv(size = 1024)
+                count = len(chunk)
             except Exception as e:
                 genericSocket.close()
 
