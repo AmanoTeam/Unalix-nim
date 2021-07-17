@@ -366,7 +366,7 @@ proc unshortUrl*(
 
                 new(err)
 
-                err.msg = "No address associated with hostname"
+                err.msg = e.msg
                 err.url = newUrl
                 err.parent = e
 
@@ -462,7 +462,7 @@ proc unshortUrl*(
 
             new(err)
 
-            err.msg = "Connection error"
+            err.msg = e.msg
             err.url = newUrl
             err.parent = e
 
@@ -674,7 +674,7 @@ proc asyncUnshortUrl*(
 
                 new(err)
 
-                err.msg = "No address associated with hostname"
+                err.msg = e.msg
                 err.url = newUrl
                 err.parent = e
 
@@ -770,7 +770,7 @@ proc asyncUnshortUrl*(
 
             new(err)
 
-            err.msg = "Connection error"
+            err.msg = e.msg
             err.url = newUrl
             err.parent = e
 
