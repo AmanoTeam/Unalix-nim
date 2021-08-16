@@ -10,112 +10,137 @@ nimble install --accept 'unalix'
 
 _**Note**: Unalix requires Nim 1.4.0 or higher._
 
-#### Library usage
+#### Usage:
+
+Removing tracking fields:
 
 ```nim
 import unalix
 
-var
-  url: string
+const url: string = "https://deezer.com/track/891177062?utm_source=deezer"
+let result: string = clearUrl(url = url)
 
-url = "https://deezer.com/track/891177062?utm_source=deezer"
-
-# Strip tracking fields
-assert clearUrl(url = url) == "https://deezer.com/track/891177062"
-
-url = "https://bitly.is/Pricing-Pop-Up"
-
-# Unshort shortened URL
-assert unshortUrl(url = url) == "https://bitly.com/pages/pricing"
+assert result == "https://deezer.com/track/891177062"
 ```
 
-_**Tip**: The `unshortUrl()` proc will strip tracking fields from any URL before following a redirect, so you don't need to manually call `clearUrl()` for it's return value._
+Unshort shortened URL:
 
-#### CLI tool usage
+```nim
+import unalix
 
+const url: string = "https://bitly.is/Pricing-Pop-Up"
+let result: string = unshortUrl(url = url)
+
+assert result == "https://bitly.com/pages/pricing"
 ```
-$ unalix --help
-usage: unalix [-h] [-v] -u URL
-              [--ignore-referral]
-              [--ignore-rules]
-              [--ignore-exceptions]
-              [--ignore-raw-rules]
-              [--ignore-redirections]
-              [--skip-blocked]
-              [--strip-duplicates]
-              [--strip-empty] [-s] [-l]
 
-Unalix is a small, dependency-free, fast
-Nim package and CLI tool for removing
-tracking fields from URLs.
+_**Tip**: The `unshortUrl()` proc will strip tracking fields from any URL before following a redirect, so you don't need to manually call `clear_url()` for it's return value._
 
-optional arguments:
-  -h, --help        show this help
-                    message and exit
-  -v, --version     show version number
-                    and exit
-  -u URL, --url URL
-                    HTTP URL you want to
-                    unshort or remove
-                    tracking fields
-                    from. [default: read
-                    from standard input]
-  --ignore-referral
-                    Instruct Unalix to
-                    not remove referral
-                    marketing fields
-                    from the given URL.
-                    [default: remove]
-  --ignore-rules    Instruct Unalix to
-                    not remove tracking
-                    fields from the
-                    given URL. [default:
-                    don't ignore]
-  --ignore-exceptions
-                    Instruct Unalix to
-                    ignore exceptions
-                    for the given URL.
-                    [default: don't
-                    ignore]
-  --ignore-raw-rules
-                    Instruct Unalix to
-                    ignore raw rules for
-                    the given URL.
-                    [default: don't
-                    ignore]
-  --ignore-redirections
-                    Instruct Unalix to
-                    ignore redirection
-                    rules for the given
-                    URL. [default: don't
-                    ignore]
-  --skip-blocked    Instruct Unalix to
-                    ignore rule
-                    processing for
-                    blocked URLs.
-                    [default: don't
-                    ignore]
-  --strip-duplicates
-                    Instruct Unalix to
-                    strip fields with
-                    duplicate names.
-                    [default: don't
-                    strip]
-  --strip-empty     Instruct Unalix to
-                    strip fields with
-                    empty values.
-                    [default: don't
-                    strip]
-  -s, --unshort     Unshort the given
-                    URL (HTTP requests
-                    will be made).
-                    [default: don't try
-                    to unshort]
-  -l, --launch      Launch URL with
-                    user's default
-                    browser. [default:
-                    don't launch]
+#### C API
+
+You can easily integrate this library into your native C/C++ app. Have a look at [Nim invocation example from C](https://nim-lang.org/docs/backends.html#backend-code-calling-nim-nim-invocation-example-from-c) for more information.
+
+#### C API usage
+
+Removing tracking fields:
+
+```c
+#include "unalix.h"
+#include <assert.h>
+#include <string.h>
+
+int main() {
+
+    const char url[] = "https://deezer.com/track/891177062?utm_source=deezer";
+    const int ignoreReferralMarketing = 0;
+    const int ignoreRules = 0;
+    const int ignoreExceptions = 0;
+    const int ignoreRawRules = 0;
+    const int ignoreRedirections = 0;
+    const int skipBlocked = 0;
+    const int stripDuplicates = 0;
+    const int stripEmpty = 0;
+
+    // Call this once after loading the library
+    NimMain();
+
+    char* result = clearUrl(
+        url,
+        ignoreReferralMarketing,
+        ignoreRules,
+        ignoreExceptions,
+        ignoreRawRules,
+        ignoreRedirections,
+        skipBlocked,
+        stripDuplicates,
+        stripEmpty
+    );
+
+    assert(strcmp(result, "https://deezer.com/track/891177062") == 0);
+
+}
 ```
+
+Unshort shortened URL:
+
+```c
+#include "unalix.h"
+#include <assert.h>
+#include <string.h>
+
+int main() {
+
+    const char url[] = "https://bitly.is/Pricing-Pop-Up";
+    const int ignoreReferralMarketing = 0;
+    const int ignoreRules = 0;
+    const int ignoreExceptions = 0;
+    const int ignoreRawRules = 0;
+    const int ignoreRedirections = 0;
+    const int skipBlocked = 0;
+    const int stripDuplicates = 0;
+    const int stripEmpty = 0;
+
+    // Call this once after loading the library
+    NimMain();
+
+    char* result = unshortUrl(
+        url,
+        ignoreReferralMarketing,
+        ignoreRules,
+        ignoreExceptions,
+        ignoreRawRules,
+        ignoreRedirections,
+        skipBlocked,
+        stripDuplicates,
+        stripEmpty
+    );
+
+    assert(strcmp(result, "https://bitly.com/pages/pricing") == 0);
+
+}
+```
+
+1. Generate sources (change from `c` to `cpp` to generate C++ sources instead):
+
+```bash
+nim c \
+    --noMain \
+    --compileOnly:on \
+    --header:'unalix.h' \
+    'src/unalixpkg/core.nim'
+```
+
+2. Put one of the examples in a file called `testUnalix.c` and compile with:
+
+```bash
+gcc -o './testUnalix' \
+    -I"${HOME}/.cache/nim/core_d" \
+    -I'/path/to/nim/lib' \
+    "${HOME}/.cache/nim/core_d/"*.c \
+    'testUnalix.c'
+```
+
+3. Now run the compiled `./testUnalix`
 
 #### Contributing
 
