@@ -23,6 +23,7 @@ type
         statusMessage: string
         headers: seq[(string, string)]
         body: string
+    cbool* = bool
 
 func initResponse*(
     httpVersion: float,

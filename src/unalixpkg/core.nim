@@ -874,3 +874,56 @@ proc asyncUnshortUrl*(
             continue
 
         break
+
+proc clearUrl(
+    url: cstring,
+    ignoreReferralMarketing: cbool = false,
+    ignoreRules: cbool = false,
+    ignoreExceptions: cbool = false,
+    ignoreRawRules: cbool = false,
+    ignoreRedirections: cbool = false,
+    skipBlocked: cbool = false,
+    stripDuplicates: cbool = false,
+    stripEmpty: cbool = false,
+): cstring {.cdecl, exportc, dynlib.} =
+
+    let cleanedUrl: string = clearUrl(
+        url = $url,
+        ignoreReferralMarketing = ignoreReferralMarketing,
+        ignoreRules = ignoreRules,
+        ignoreExceptions = ignoreExceptions,
+        ignoreRawRules = ignoreRawRules,
+        ignoreRedirections = ignoreRedirections,
+        skipBlocked = skipBlocked,
+        stripDuplicates = stripDuplicates,
+        stripEmpty = stripEmpty
+    )
+    
+    result = cstring(cleanedUrl)
+
+
+proc unshortUrl(
+    url: cstring,
+    ignoreReferralMarketing: cbool = false,
+    ignoreRules: cbool = false,
+    ignoreExceptions: cbool = false,
+    ignoreRawRules: cbool = false,
+    ignoreRedirections: cbool = false,
+    skipBlocked: cbool = false,
+    stripDuplicates: cbool = false,
+    stripEmpty: cbool = false
+): cstring {.cdecl, exportc, dynlib.} =
+
+    let unshortedUrl: string = unshortUrl(
+        url = $url,
+        ignoreReferralMarketing = ignoreReferralMarketing,
+        ignoreRules = ignoreRules,
+        ignoreExceptions = ignoreExceptions,
+        ignoreRawRules = ignoreRawRules,
+        ignoreRedirections = ignoreRedirections,
+        skipBlocked = skipBlocked,
+        stripDuplicates = stripDuplicates,
+        stripEmpty = stripEmpty
+    )
+    
+    result = cstring(unshortedUrl)
