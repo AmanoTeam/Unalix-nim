@@ -914,16 +914,21 @@ proc unshortUrl(
     stripEmpty: cbool = false
 ): cstring {.cdecl, exportc, dynlib.} =
 
-    let unshortedUrl: string = unshortUrl(
-        url = $url,
-        ignoreReferralMarketing = ignoreReferralMarketing,
-        ignoreRules = ignoreRules,
-        ignoreExceptions = ignoreExceptions,
-        ignoreRawRules = ignoreRawRules,
-        ignoreRedirections = ignoreRedirections,
-        skipBlocked = skipBlocked,
-        stripDuplicates = stripDuplicates,
-        stripEmpty = stripEmpty
-    )
-    
+    var unshortedUrl: string
+
+    try:
+        unshortedUrl = unshortUrl(
+            url = $url,
+            ignoreReferralMarketing = ignoreReferralMarketing,
+            ignoreRules = ignoreRules,
+            ignoreExceptions = ignoreExceptions,
+            ignoreRawRules = ignoreRawRules,
+            ignoreRedirections = ignoreRedirections,
+            skipBlocked = skipBlocked,
+            stripDuplicates = stripDuplicates,
+            stripEmpty = stripEmpty
+        )
+    except ConnectError as e:
+        unshortedUrl = e.url
+
     result = cstring(unshortedUrl)
