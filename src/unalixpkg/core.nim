@@ -14,6 +14,10 @@ import ./exceptions
 import ./rulesets
 import ./utils
 
+when defined(android):
+    {.passC: "-I" & parentDir(currentSourcePath) / "android".}
+    {.compile: "android/glob.c".}
+
 proc compileRulesets(rulesetsList: JsonNode): seq[TableRef[string, Node]] =
     ## Compile rulesets from a JsonNode object
 

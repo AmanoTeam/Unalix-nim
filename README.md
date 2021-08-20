@@ -53,3 +53,8 @@ Unalix includes some third party software in its codebase. See them below:
   - Author: Kenneth Reitz
   - Repository: [psf/requests](https://github.com/psf/requests)
   - License: [Apache v2.0](https://github.com/psf/requests/blob/master/LICENSE)
+
+- **libandroid-glob**
+  - Author: Many authors
+  - Repository: [termux/termux-packages](https://github.com/termux/termux-packages/tree/master/packages/libandroid-glob)
+  - License: [BSD 3-Clause](https://github.com/termux/termux-packages/blob/master/packages/libandroid-glob/LICENSE)
