@@ -1,5 +1,6 @@
 import re
 import json
+import strutils
 
 type
     NodeKind* = enum
@@ -42,12 +43,16 @@ proc getJson*(self: Response): JsonNode =
     result = parseJson(self.body)
 
 proc hasHeader*(self: Response, name: string): bool =
+    let nameLower: string = name.toLower()
+
     for (key, value) in self.headers:
-        if key == name:
+        if key.toLower() == nameLower:
             return true
     result = false
 
 proc getHeader*(self: Response, name: string): string =
+    let nameLower: string = name.toLower()
+
     for (key, value) in self.headers:
-        if key == name:
+        if key.toLower() == nameLower:
             return value
