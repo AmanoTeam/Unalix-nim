@@ -190,7 +190,7 @@ while true:
 if url == "":
     for stdinUrl in stdin.lines:
         if unshort:
-            newUrl = waitFor asyncUnshortUrl(
+            newUrl = waitFor aunshortUrl(
                 url = stdinUrl,
                 ignoreReferralMarketing = ignoreReferralMarketing,
                 ignoreRules = ignoreRules,
@@ -220,7 +220,7 @@ if url == "":
 else:
     if unshort:
         try:
-            newUrl = waitFor asyncUnshortUrl(
+            newUrl = waitFor aunshortUrl(
                 url = url,
                 ignoreReferralMarketing = ignoreReferralMarketing,
                 ignoreRules = ignoreRules,

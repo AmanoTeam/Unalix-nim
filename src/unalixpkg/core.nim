@@ -572,7 +572,7 @@ proc unshortUrl*(
         break
 
 
-proc asyncUnshortUrl*(
+proc aunshortUrl*(
     url: string,
     ignoreReferralMarketing: bool = false,
     ignoreRules: bool = false,
@@ -922,6 +922,37 @@ proc unshortUrl(
 
     try:
         unshortedUrl = unshortUrl(
+            url = $url,
+            ignoreReferralMarketing = ignoreReferralMarketing,
+            ignoreRules = ignoreRules,
+            ignoreExceptions = ignoreExceptions,
+            ignoreRawRules = ignoreRawRules,
+            ignoreRedirections = ignoreRedirections,
+            skipBlocked = skipBlocked,
+            stripDuplicates = stripDuplicates,
+            stripEmpty = stripEmpty
+        )
+    except ConnectError as e:
+        unshortedUrl = e.url
+
+    result = cstring(unshortedUrl)
+
+proc aunshortUrl(
+    url: cstring,
+    ignoreReferralMarketing: cbool = false,
+    ignoreRules: cbool = false,
+    ignoreExceptions: cbool = false,
+    ignoreRawRules: cbool = false,
+    ignoreRedirections: cbool = false,
+    skipBlocked: cbool = false,
+    stripDuplicates: cbool = false,
+    stripEmpty: cbool = false
+): cstring {.cdecl, exportc, dynlib.} =
+
+    var unshortedUrl: string
+
+    try:
+        unshortedUrl = waitFor aunshortUrl(
             url = $url,
             ignoreReferralMarketing = ignoreReferralMarketing,
             ignoreRules = ignoreRules,
