@@ -1,10 +1,10 @@
-import asyncdispatch
 import parseopt
 import strformat
 import browsers
 
 import ./core
 import ./exceptions
+import ./config
 
 const helpMessage: string = """
 usage: unalix [-h] [-v] -u URL
@@ -90,10 +90,9 @@ optional arguments:
 """
 
 const
-    versionNumber: string = "0.5.1"
     repository: string = staticExec("git config --get remote.origin.url")
     commitHash: string = staticExec("git rev-parse --short HEAD")
-    versionInfo: string = fmt"Unalix v{versionNumber} ({repository}@{commitHash})" &
+    versionInfo: string = fmt"Unalix v{UNALIX_VERSION} ({repository}@{commitHash})" &
         "\n" &
         fmt"Compiled for {hostOS} ({hostCPU}) using Nim {NimVersion}" &
         fmt"({CompileDate}, {CompileTime})" &
@@ -190,7 +189,7 @@ while true:
 if url == "":
     for stdinUrl in stdin.lines:
         if unshort:
-            newUrl = waitFor aunshortUrl(
+            newUrl = unshortUrl(
                 url = stdinUrl,
                 ignoreReferralMarketing = ignoreReferralMarketing,
                 ignoreRules = ignoreRules,
@@ -220,7 +219,7 @@ if url == "":
 else:
     if unshort:
         try:
-            newUrl = waitFor aunshortUrl(
+            newUrl = unshortUrl(
                 url = url,
                 ignoreReferralMarketing = ignoreReferralMarketing,
                 ignoreRules = ignoreRules,
