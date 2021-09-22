@@ -2972,3 +2972,13 @@ let rulesetsNode*: JsonNode = %* [
         "forceRedirection": false
     }
 ]
+let redirectsNode*: JsonNode = %* [
+    {
+        "providerName": "global",
+        "urlPattern": ".*",
+        "domains": [],
+        "rules": [
+            "redirecturl\\s\\=\\s'(https?:\\/\\/.+)'"
+        ]
+    }
+]

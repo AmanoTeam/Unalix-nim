@@ -1,5 +1,3 @@
 main
 test_cleaner
-builds
-openssl-1.1.1k
-pcre-8.45
+core

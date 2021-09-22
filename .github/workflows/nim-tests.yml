@@ -16,8 +16,6 @@ jobs:
             windows-latest
         ]
         nim-version: [
-            "1.4.0",
-            "stable",
             "devel"
         ]
 

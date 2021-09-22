@@ -6,13 +6,15 @@ text = """\
 import json
 
 let rulesetsNode: JsonNode = %* {}
+let redirectsNode: JsonNode = %* {}
 """
 
 rulesets = []
 
 urls = (
 	"https://rules1.clearurls.xyz/data/data.minify.json",
-	"https://raw.githubusercontent.com/AmanoTeam/Unalix/master/unalix/package_data/rulesets/unalix.json"
+	"https://raw.githubusercontent.com/AmanoTeam/Unalix/master/unalix/package_data/rulesets/unalix.json",
+	"https://raw.githubusercontent.com/AmanoTeam/Unalix/master/unalix/package_data/other/redirects_from_body.json"
 )
 
 ignored_providers = (
@@ -40,8 +42,14 @@ for raw_url in urls:
 	response = connection.getresponse()
 
 	content = response.read()
+	
+	connection.close()
 
 	rules = json.loads(content)
+	
+	if raw_url.endswith("redirects_from_body.json"):
+		redirects = rules
+		continue
 
 	for providerName in rules["providers"].keys():
 		if not rules["providers"][providerName]["urlPattern"]:
@@ -63,4 +71,9 @@ for raw_url in urls:
 		})
 
 with open(file="src/unalixpkg/rulesets.nim", mode="w", encoding="utf-8") as file:
-	file.write(text.format(json.dumps(rulesets, ensure_ascii=False, indent=4)))
+	file.write(
+		text.format(
+			json.dumps(rulesets, ensure_ascii=False, indent=4),
+			json.dumps(redirects, ensure_ascii=False, indent=4)
+		)
+	)
