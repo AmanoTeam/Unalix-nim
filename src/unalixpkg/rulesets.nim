@@ -42,7 +42,8 @@ let rulesetsNode*: JsonNode = %* [
             "\\/ref=[^/?]*"
         ],
         "referralMarketing": [
-            "tag"
+            "tag",
+            "ascsubtag"
         ],
         "exceptions": [
             "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?amazon(?:\\.[a-z]{2,}){1,}\\/gp\\/.*?(?:redirector.html|cart\\/ajax-update.html|video\\/api\\/)",
@@ -74,7 +75,6 @@ let rulesetsNode*: JsonNode = %* [
             "th",
             "sprefix",
             "crid",
-            "keywords",
             "cv_ct_[a-z]+",
             "linkCode",
             "creativeASIN",
@@ -145,7 +145,8 @@ let rulesetsNode*: JsonNode = %* [
             "sourceid",
             "sxsrf",
             "rlz",
-            "i-would-rather-use-firefox"
+            "i-would-rather-use-firefox",
+            "pcampaignid"
         ],
         "rawRules": [],
         "referralMarketing": [
@@ -252,7 +253,8 @@ let rulesetsNode*: JsonNode = %* [
             "Echobox",
             "(?:%3F)?spm",
             "(?:%3F)?vn(?:_[a-z]*)+",
-            "(?:%3F)?tracking_source"
+            "(?:%3F)?tracking_source",
+            "(?:%3F)?ceneo_spo"
         ],
         "rawRules": [],
         "referralMarketing": [],
@@ -270,7 +272,7 @@ let rulesetsNode*: JsonNode = %* [
             "^https?:\\/\\/www\\.tinkoff\\.ru",
             "^https?:\\/\\/www\\.cyberport\\.de\\/adscript\\.php",
             "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?tweakers\\.net\\/ext\\/lt\\.dsp\\?.*?(?:%3F)?&?ref_?=.",
-            "^https?:\\/\\/git\\.[^/]*\\/[^?]+\\?.*?&?ref_?=[^/?&]*",
+            "^https?:\\/\\/git(lab)?\\.[^/]*\\/[^?]+\\?.*?&?ref_?=[^/?&]*",
             "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?amazon(?:\\.[a-z]{2,}){1,}\\/message-us\\?",
             "^https?:\\/\\/authorization\\.td\\.com",
             "^https?:\\/\\/support\\.steampowered\\.com",
@@ -289,7 +291,8 @@ let rulesetsNode*: JsonNode = %* [
             "^wss?:\\/\\/(?:[a-z0-9-]+\\.)*?zoom\\.us",
             "^https?:\\/\\/api\\.bilibili\\.com",
             "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?onet\\.pl\\/[^?]*\\?.*?utm_campaign=.",
-            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?stripe\\.com\\/[^?]+.*?&?referrer=[^/?&]*"
+            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?stripe\\.com\\/[^?]+.*?&?referrer=[^/?&]*",
+            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?lichess\\.org\\/login.*?&?referrer=.*?"
         ],
         "redirections": [],
         "forceRedirection": false
@@ -364,7 +367,9 @@ let rulesetsNode*: JsonNode = %* [
         ],
         "rawRules": [],
         "referralMarketing": [],
-        "exceptions": [],
+        "exceptions": [
+            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?youtube\\.com\\/signin\\?.*?"
+        ],
         "redirections": [
             "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?youtube\\.com\\/redirect?.*?q=([^&]*)"
         ],
@@ -463,7 +468,8 @@ let rulesetsNode*: JsonNode = %* [
         "referralMarketing": [],
         "exceptions": [],
         "redirections": [
-            "^https?:\\/\\/out\\.reddit\\.com\\/.*?url=([^&]*)"
+            "^https?:\\/\\/out\\.reddit\\.com\\/.*?url=([^&]*)",
+            "^https?:\\/\\/click\\.redditmail\\.com\\/.*?url=([^&]*)"
         ],
         "forceRedirection": false
     },
@@ -1236,7 +1242,7 @@ let rulesetsNode*: JsonNode = %* [
         "referralMarketing": [],
         "exceptions": [],
         "redirections": [
-            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?awstrack\\.me\\/.*\\/(https?.*)"
+            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?awstrack\\.me\\/.*\\/(https?.*?)\\/"
         ],
         "forceRedirection": false
     },
@@ -1766,13 +1772,53 @@ let rulesetsNode*: JsonNode = %* [
             "spm_id_from",
             "from_source",
             "from",
-            "seid"
+            "seid",
+            "share_source",
+            "msource",
+            "refer_from",
+            "share_medium",
+            "share_source",
+            "share_plat",
+            "share_tag",
+            "share_session_id",
+            "timestamp",
+            "unique_k"
         ],
         "rawRules": [],
         "referralMarketing": [],
         "exceptions": [
             "^https?:\\/\\/api\\.bilibili\\.com"
         ],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "m.bilibili.com",
+        "urlPattern": "^https?:\\/\\/m\\.bilibili\\.com",
+        "completeProvider": false,
+        "rules": [
+            "bbid",
+            "ts"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "live.bilibili.com",
+        "urlPattern": "^https?:\\/\\/live\\.bilibili\\.com",
+        "completeProvider": false,
+        "rules": [
+            "visit_id",
+            "session_id",
+            "broadcast_type",
+            "is_room_feed"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
         "redirections": [],
         "forceRedirection": false
     },
@@ -2225,6 +2271,289 @@ let rulesetsNode*: JsonNode = %* [
         "completeProvider": false,
         "rules": [
             "source"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "hs.fi",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?hs\\.fi",
+        "completeProvider": false,
+        "rules": [
+            "share"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "yle.fi",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?yle\\.fi",
+        "completeProvider": false,
+        "rules": [
+            "origin"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "ccbill.com",
+        "urlPattern": "^https?:\\/\\/refer\\.ccbill\\.com",
+        "completeProvider": false,
+        "rules": [],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [
+            "^https?:\\/\\/refer\\.ccbill\\.com.*HTML=([^&]*)"
+        ],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "flipkart",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?flipkart\\.com",
+        "completeProvider": false,
+        "rules": [
+            "otracker.?",
+            "ssid",
+            "[cilp]id",
+            "marketplace",
+            "store",
+            "srno",
+            "store",
+            "ppn",
+            "ppt",
+            "fm",
+            "collection-tab-name",
+            "sattr\\[\\]",
+            "p\\[\\]",
+            "st"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "idealo.de",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?idealo\\.de",
+        "completeProvider": false,
+        "rules": [
+            "sid",
+            "src",
+            "siteId",
+            "lcb",
+            "leadOutUrl",
+            "offerListId",
+            "osId",
+            "cancelUrl",
+            "disc"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "idealo-partner.com",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?idealo-partner\\.com",
+        "completeProvider": false,
+        "rules": [],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [
+            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?idealo-partner\\.com.*trg=([^&]*)"
+        ],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "teletrader.com",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?teletrader\\.com",
+        "completeProvider": false,
+        "rules": [
+            "internal"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "webgains.com",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?webgains\\.com",
+        "completeProvider": false,
+        "rules": [],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [
+            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?webgains\\.com.*wgtarget=([^&]*)"
+        ],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "deeplearning.ai",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?deeplearning\\.ai",
+        "completeProvider": false,
+        "rules": [
+            "ecid",
+            "_hsmi",
+            "_hsenc"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "getpocket.com",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?getpocket\\.com",
+        "completeProvider": false,
+        "rules": [],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [
+            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?getpocket\\.com.*url=([^&]*)"
+        ],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "gamespot.com",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?gamespot\\.com",
+        "completeProvider": false,
+        "rules": [
+            "PostType",
+            "ServiceType",
+            "ftag",
+            "UniqueID",
+            "TheTime"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "tokopedia.com",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?tokopedia\\.com",
+        "completeProvider": false,
+        "rules": [
+            "src",
+            "trkid",
+            "whid"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [
+            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?tokopedia\\.com\\/promo.*r=([^&]*)"
+        ],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "wkorea.com",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?wkorea\\.com",
+        "completeProvider": false,
+        "rules": [
+            "ddw",
+            "ds_ch"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "eonline.com",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?eonline\\.com",
+        "completeProvider": false,
+        "rules": [
+            "source",
+            "medium",
+            "content"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "reuters.com",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?reuters\\.com",
+        "completeProvider": false,
+        "rules": [
+            "taid"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "app.adjust.com",
+        "urlPattern": "^https?:\\/\\/app\\.adjust\\.com",
+        "completeProvider": false,
+        "rules": [],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [
+            "^https?:\\/\\/app\\.adjust\\.com.*redirect=([^&]*)"
+        ],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "change.org",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?change\\.org",
+        "completeProvider": false,
+        "rules": [
+            "source_location",
+            "psf_variant",
+            "share_intent"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "ceneo.pl",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?ceneo\\.pl",
+        "completeProvider": false,
+        "rules": [
+            "tag"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "wired.com",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?wired\\.com",
+        "completeProvider": false,
+        "rules": [
+            "intcid"
         ],
         "rawRules": [],
         "referralMarketing": [],

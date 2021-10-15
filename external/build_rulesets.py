@@ -5,8 +5,8 @@ import urllib.parse
 text = """\
 import json
 
-let rulesetsNode: JsonNode = %* {}
-let redirectsNode: JsonNode = %* {}
+let rulesetsNode*: JsonNode = %* {}
+let redirectsNode*: JsonNode = %* {}
 """
 
 rulesets = []
