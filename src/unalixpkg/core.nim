@@ -67,7 +67,7 @@ proc compileRulesets(rulesetsList: JsonNode): seq[TableRef[string, RulesetNode]]
         # https://docs.clearurls.xyz/latest/specs/rules/#forceredirection
         table["forceRedirection"] = RulesetNode(kind: nkBool, boolVal: provider["forceRedirection"].getBool())
 
-        rulesets.add(y = table)
+        rulesets.add(table)
 
     result = rulesets
 
@@ -97,7 +97,7 @@ proc compileRedirects(redirectsList: JsonNode): seq[TableRef[string, RulesetNode
         rules = block: collect newSeq: (for rule in provider["rules"]: rex(rule.getStr()))
         table["rules"] = RulesetNode(kind: nkSeqRegex, seqRegexVal: rules)
 
-        redirects.add(y = table)
+        redirects.add(table)
 
     result = redirects
 
@@ -412,7 +412,7 @@ proc unshortUrl*(
 
             (key, value) = headerLine.split(sep = ": ", maxsplit = 1)
 
-            headers.add(y = (key, value))
+            headers.add((key, value))
 
         response = initResponse(
             httpVersion = if parseFloat(s = httpVersion.split(sep = "/")[1]) == 1.1: HttpVer11 else: HttpVer10,
