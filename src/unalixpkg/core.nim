@@ -311,11 +311,17 @@ proc unshortUrl*(
         payload.add(y = "\n")
 
         try:
-            socket.connect(
-                address = uri.hostname,
-                port = Port(httpPort),
-                timeout = httpTimeout
-            )
+            if (NimMajor, NimMinor) >= (1, 6):
+                socket.connect(
+                    address = uri.hostname,
+                    port = Port(httpPort),
+                    timeout = httpTimeout
+                )
+            else:
+                socket.connect(
+                    address = uri.hostname,
+                    port = Port(httpPort)
+                )
             socket.send(data = payload, flags = {})
         except Exception as e:
             socket.close()
