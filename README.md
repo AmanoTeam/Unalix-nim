@@ -38,7 +38,7 @@ _**Tip**: The `unshortUrl()` proc will strip tracking fields from any URL before
 
 #### Downloads
 
-You can get prebuilt static executables of Unalix for Linux and Android at [AmanoTeam/UnalixLibs](https://github.com/AmanoTeam/UnalixLibs).
+You can get prebuilt static executables for Linux and Android at [AmanoTeam/UnalixLibs](https://github.com/AmanoTeam/UnalixLibs).
 
 #### Contributing
 
