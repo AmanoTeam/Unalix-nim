@@ -10,7 +10,7 @@ installExt = @["nim"]
 
 # Dependencies
 
-requires "nim >= 1.5.1"
+requires "nim >= 1.2.8"
 
 task test, "Runs the test suite":
   exec "nim compile --run tests/test_cleaner.nim"

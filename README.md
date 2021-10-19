@@ -8,7 +8,7 @@ Install using `nimble`:
 nimble install --accept 'unalix'
 ```
 
-_**Note**: Unalix requires Nim 1.5.1 or higher._
+_**Note**: Unalix requires Nim 1.2.8 or higher._
 
 #### Usage:
 
@@ -38,7 +38,7 @@ _**Tip**: The `unshortUrl()` proc will strip tracking fields from any URL before
 
 #### Downloads
 
-You can get prebuilt static executables and shared libraries of Unalix for Linux and Android at [AmanoTeam/UnalixLibs](https://github.com/AmanoTeam/UnalixLibs).
+You can get prebuilt static executables of Unalix for Linux and Android at [AmanoTeam/UnalixLibs](https://github.com/AmanoTeam/UnalixLibs).
 
 #### Contributing
 
