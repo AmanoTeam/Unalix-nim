@@ -3,6 +3,7 @@ import ./unalixpkg/exceptions
 
 export clearUrl
 export unshortUrl
+export aunshortUrl
 
 export UnsupportedProtocolError
 export ReadError

@@ -1,3 +1,5 @@
+import asyncnet
+import asyncdispatch
 import sugar
 import tables
 import net
@@ -247,7 +249,7 @@ proc unshortUrl*(
 ): string = 
 
     var
-        totalRedirects, totalRetries, retryAfter, httpPort, count: int
+        totalRedirects, totalRetries, retryAfter, httpPort: int
         redirectLocation, surl, httpPath, payload, chunks, chunk: string
         headerLines, body, key, value, httpVersion, statusCode, statusMessage: string
         timeNow, timeInFuture: DateTime
@@ -322,7 +324,7 @@ proc unshortUrl*(
                     address = uri.hostname,
                     port = Port(httpPort)
                 )
-            socket.send(data = payload, flags = {})
+            socket.send(data = payload)
         except Exception as e:
             socket.close()
             
@@ -362,7 +364,7 @@ proc unshortUrl*(
             chunk = ""
 
             try:
-                count = socket.recv(data = chunk, size = 1024, timeout = httpTimeout, flags = {})
+                discard socket.recv(data = chunk, size = 1024, timeout = httpTimeout)
             except Exception as e:
                 socket.close()
 
@@ -375,7 +377,7 @@ proc unshortUrl*(
 
                 raise err
 
-            if count < 1:
+            if len(chunk) < 1:
                 break
 
             chunks.add(y = chunk)
@@ -388,7 +390,7 @@ proc unshortUrl*(
                 chunk = ""
     
                 try:
-                    count = socket.recv(data = chunk, size = 1024, timeout = httpTimeout, flags = {})
+                    discard socket.recv(data = chunk, size = 1024, timeout = httpTimeout)
                 except Exception as e:
                     socket.close()
     
@@ -401,7 +403,385 @@ proc unshortUrl*(
     
                     raise err
     
-                if count < 1:
+                if len(chunk) < 1:
+                    break
+    
+                body.add(y = chunk)
+
+        socket.close()
+
+        headers = newSeq[(string, string)]()
+
+        for (index, headerLine) in headerLines.split(sep = "\r\n").pairs():
+            # This index is not a header
+            if index == 0:
+                (httpVersion, statusCode, statusMessage) = headerLine.split(sep = " ", maxsplit = 2)
+                continue
+
+            (key, value) = headerLine.split(sep = ": ", maxsplit = 1)
+
+            headers.add((key, value))
+
+        response = initResponse(
+            httpVersion = if parseFloat(s = httpVersion.split(sep = "/")[1]) == 1.1: HttpVer11 else: HttpVer10,
+            statusCode = parseInt(s = statusCode).HttpCode,
+            headers = newHttpHeaders(headers),
+            body = body
+        )
+
+        # Retry based on status code
+        if httpMaxRetries > 0 and response.statusCode in httpStatusRetry:
+            if response.headers.hasKey(key = "Retry-After"):
+                try:
+                    retryAfter = parseInt(s = response.headers["Retry-After"]) * 1000
+                except:
+                    timeNow = now().utc()
+                    timeInFuture = parse(
+                        input = response.headers["Retry-After"],
+                        f = "ddd, d MMM yyyy HH:mm:ss 'GMT'",
+                        zone = utc()
+                    )
+                    retryAfter = int(inMilliseconds(dur = timeInFuture - timeNow))
+                sleep(milsecs = retryAfter)
+            
+            totalRetries += 1
+            
+            if totalRetries > httpMaxRetries:
+                var err:
+                    MaxRetriesError
+                
+                new(err)
+                
+                err.msg = "Exceeded maximum allowed retries"
+                err.url = surl
+                
+                raise err
+            
+            continue
+
+        if response.statusCode.is3xx() and response.headers.hasKey(key = "Location"):
+            redirectLocation = response.headers["Location"].toString()
+        elif response.statusCode.is2xx() and response.headers.hasKey(key = "Content-Location"):
+            redirectLocation = response.headers["Content-Location"].toString()
+        else:
+            redirectLocation = ""
+
+        if not redirectLocation.isEmptyOrWhitespace():
+            redirectLocation = redirectLocation.replace(sub = " ", by = "%20")
+            if not (redirectLocation.startsWith(prefix = "https://") or redirectLocation.startsWith(prefix = "http://")):
+                if redirectLocation.startsWith(prefix = "//"):
+                    redirectLocation = &"{uri.scheme}://" & redirectLocation.replacef(sub = re"^/*", by = "") 
+                elif redirectLocation.startsWith(prefix = '/'):
+                    redirectLocation = &"{uri.scheme}://{uri.hostname}{redirectLocation}"
+                else:
+                    redirectLocation = &"{uri.scheme}://{uri.hostname}" & (if uri.path != "/": parentDir(uri.path) else: uri.path) & redirectLocation
+
+            if redirectLocation == surl:
+                break
+
+            totalRedirects += 1
+
+            # Strip tracking fields from the redirect URL
+            surl = clearUrl(
+                url = redirectLocation,
+                ignoreReferralMarketing = ignoreReferralMarketing,
+                ignoreRules = ignoreRules,
+                ignoreExceptions = ignoreExceptions,
+                ignoreRawRules = ignoreRawRules,
+                ignoreRedirections = ignoreRedirections,
+                skipBlocked = skipBlocked,
+                stripDuplicates = stripDuplicates,
+                stripEmpty = stripEmpty
+            )
+
+            if totalRedirects > httpMaxRedirects:
+                var
+                    err: TooManyRedirectsError
+
+                new(err)
+
+                err.msg = "Exceeded maximum allowed redirects"
+                err.url = surl
+
+                raise err
+
+            continue
+
+        if parseDocuments:
+            uri = parseUri(uri = surl)
+            redirectMatches = false
+
+            block redirectLoop:
+                for redirect in redirectsTable:
+                    if surl.match(pattern = redirect["urlPattern"].regexVal) or uri.hostname in redirect["domains"].seqStringVal:
+                        for ruleset in redirect["rules"].seqRegexVal:
+                            if response.body.find(pattern = ruleset, matches = matches) > -1:
+                                (redirectLocation, redirectMatches) = (matches[0], true)
+                                break redirectLoop
+            
+            if redirectMatches:
+                surl = clearUrl(
+                    url = requoteUri(uri = htmlUnescape(s = redirectLocation)),
+                    ignoreReferralMarketing = ignoreReferralMarketing,
+                    ignoreRules = ignoreRules,
+                    ignoreExceptions = ignoreExceptions,
+                    ignoreRawRules = ignoreRawRules,
+                    ignoreRedirections = ignoreRedirections,
+                    skipBlocked = skipBlocked,
+                    stripDuplicates = stripDuplicates,
+                    stripEmpty = stripEmpty
+                )
+                
+                totalRedirects += 1
+                
+                if totalRedirects > httpMaxRedirects:
+                    var
+                        err: TooManyRedirectsError
+
+                    new(err)
+
+                    err.msg = "Exceeded maximum allowed redirects"
+                    err.url = surl
+
+                    raise err
+                
+                continue
+
+        break
+
+
+proc aunshortUrl*(
+    url: string,
+    ignoreReferralMarketing: bool = false,
+    ignoreRules: bool = false,
+    ignoreExceptions: bool = false,
+    ignoreRawRules: bool = false,
+    ignoreRedirections: bool = false,
+    skipBlocked: bool = false,
+    stripDuplicates: bool = false,
+    stripEmpty: bool = false,
+    httpMethod: HttpMethod = defaultHttpMethod,
+    parseDocuments: bool = false,
+    httpMaxRedirects: int = defaultHttpMaxRedirects,
+    httpTimeout: int = defaultHttpTimeout,
+    httpHeaders: HttpHeaders = newHttpHeaders(defaultHttpHeaders),
+    httpMaxFetchSize: int = defaultHttpMaxFetchSize,
+    sslContext: SslContext = newContext(),
+    httpMaxRetries: int = defaultHttpMaxRetries,
+    httpStatusRetry: seq[HttpCode] = defaultHttpStatusRetry
+): Future[string] {.async.} = 
+
+    var
+        totalRedirects, totalRetries, retryAfter, httpPort: int
+        redirectLocation, surl, httpPath, payload, chunks, chunk: string
+        headerLines, body, key, value, httpVersion, statusCode, statusMessage: string
+        timeNow, timeInFuture: DateTime
+        redirectMatches: bool
+        socket: AsyncSocket
+        response: Response
+        uri: Uri
+        headers: seq[(string, string)]
+        matches: array[0..1, string]
+
+    surl = clearUrl(
+        url = url,
+        ignoreReferralMarketing = ignoreReferralMarketing,
+        ignoreRules = ignoreRules,
+        ignoreExceptions = ignoreExceptions,
+        ignoreRawRules = ignoreRawRules,
+        ignoreRedirections = ignoreRedirections,
+        skipBlocked = skipBlocked,
+        stripDuplicates = stripDuplicates,
+        stripEmpty = stripEmpty
+    )
+
+    while true:
+        result = surl
+
+        uri = parseUri(uri = surl)
+
+        socket = newAsyncSocket()
+
+        case uri.scheme:
+        of "http":
+            httpPort = if uri.port.isEmptyOrWhitespace(): 80 else: parseInt(s = uri.port)
+        of "https":
+            sslContext.wrapSocket(socket = socket)
+            httpPort = if uri.port.isEmptyOrWhitespace(): 443 else: parseInt(s = uri.port)
+        else:
+            socket.close()
+
+            var
+                err: UnsupportedProtocolError
+
+            new(err)
+
+            err.msg = "Unrecognized URI or unsupported protocol"
+            err.url = surl
+
+            raise err
+
+        if uri.path.isEmptyOrWhitespace():
+            uri.path = "/"
+
+        if not uri.query.isEmptyOrWhitespace():
+            httpPath = &"{uri.path}?{uri.query}"
+        else:
+            httpPath = uri.path
+
+        payload = &"{httpMethod} {httpPath} HTTP/1.0\nHost: {uri.hostname}\n"
+
+        for (key, value) in httpHeaders.pairs(): 
+            payload.add(y = &"{key}: {value}\n")
+        payload.add(y = "\n")
+
+        try:
+            var connectFuture = socket.connect(
+                address = uri.hostname,
+                port = Port(httpPort)
+            )
+            
+            await connectFuture or sleepAsync(ms = httpTimeout)
+            
+            if not connectFuture.finished:
+                var err:
+                    ConnectError
+                
+                new(err)
+                
+                err.msg = "AsyncSocket.connect() timed out"
+                err.url = surl
+
+                raise err
+            
+            var sendFuture = socket.send(data = payload)
+            
+            await sendFuture or sleepAsync(ms = httpTimeout)
+            
+            if not sendFuture.finished:
+                var err:
+                    ConnectError
+                
+                new(err)
+                
+                err.msg = "AsyncSocket.send() timed out"
+                err.url = surl
+
+                raise err
+        except Exception as e:
+            try:
+                socket.close()
+            except OSError:
+                discard
+            
+            # Retry based on connection error
+            if httpMaxRetries > 0:
+                totalRetries += 1
+                
+                if totalRetries > httpMaxRetries:
+                    var err:
+                        MaxRetriesError
+                    
+                    new(err)
+                    
+                    err.msg = "Exceeded maximum allowed retries"
+                    err.url = surl
+                    err.parent = e
+                    
+                    raise err
+                
+                continue
+            
+            var err:
+                ConnectError
+
+            new(err)
+
+            err.msg = e.msg
+            err.url = surl
+            err.parent = e
+
+            raise err
+
+        chunks = ""
+        
+        # Start reading headers
+        while not ("\r\n\r\n" in chunks):
+            try:
+                var recvFuture = socket.recv(size = 1024)
+                
+                await recvFuture or sleepAsync(ms = httpTimeout)
+                
+                if not recvFuture.finished:
+                    var err:
+                        ConnectError
+                    
+                    new(err)
+                    
+                    err.msg = "AsyncSocket.recv() timed out"
+                    err.url = surl
+
+                    raise err
+                
+                chunk = recvFuture.read()
+            except Exception as e:
+                try:
+                    socket.close()
+                except OSError:
+                    discard
+
+                var err:
+                    ReadError
+
+                err.msg = e.msg
+                err.url = surl
+
+                raise err
+
+            if len(chunk) < 1:
+                break
+
+            chunks.add(y = chunk)
+
+        (headerLines, body) = chunks.split(sep = "\r\n\r\n", maxsplit = 1)
+
+        # Start reading body
+        if httpMethod != HttpHead and parseDocuments:
+            while len(body) <= httpMaxFetchSize:
+                try:
+                    var recvBodyFuture = socket.recv(size = 1024)
+                    
+                    await recvBodyFuture or sleepAsync(ms = httpTimeout)
+                    
+                    if not recvBodyFuture.finished:
+                        var err:
+                            ConnectError
+                    
+                        new(err)
+                        
+                        err.msg = "AsyncSocket.recv() timed out"
+                        err.url = surl
+
+                        raise err
+                    
+                    chunk = recvBodyFuture.read()
+                except Exception as e:
+                    try:
+                        socket.close()
+                    except OSError:
+                        discard
+    
+                    var err:
+                        ReadError
+
+                    new(err)
+
+                    err.msg = e.msg
+                    err.url = surl
+
+                    raise err
+    
+                if len(chunk) < 1:
                     break
     
                 body.add(y = chunk)
