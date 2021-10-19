@@ -12,17 +12,24 @@ jobs:
     strategy:
       matrix:
         os: [
-            ubuntu-latest,
-            windows-latest
+            ubuntu-latest
         ]
         nim-version: [
-            "devel"
+            "stable",
+            "1.4.8",
+            "1.4.6",
+            "1.4.4",
+            "1.4.2",
+            "1.4.0",
+            "1.2.12",
+            "1.2.10",
+            "1.2.8"
         ]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@main
     - name: Set up Nim ${{ matrix.nim-version }}
-      uses: jiro4989/setup-nim-action@v1
+      uses: jiro4989/setup-nim-action@master
       with:
         nim-version: ${{ matrix.nim-version }}
     - name: Run tests
