@@ -114,7 +114,7 @@ proc filterQuery*(
         if stripDuplicates and key in names:
             continue
 
-        params.add(if value.isEmptyOrWhitespace(): key else: &"{key}={value}")
+        params.add(if not value.isEmptyOrWhitespace() or "=" in param: &"{key}={value}" else: key)
         names.add(key)
 
         result = params.join(sep = "&")
