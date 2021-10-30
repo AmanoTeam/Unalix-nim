@@ -2,7 +2,7 @@ import strformat
 import httpcore
 
 const
-    UNALIX_VERSION*: string = "0.6"
+    UNALIX_VERSION*: string = "0.6.1"
     UNALIX_REPOSITORY*: string = "https://github.com/AmanoTeam/Unalix-nim"
 
 const
