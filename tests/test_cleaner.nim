@@ -51,3 +51,8 @@ doAssert clearUrl(unmodifiedUrl, stripDuplicates = true) == "http://example.com/
 unmodifiedUrl = "http://example.com/?&&&&"
 
 doAssert clearUrl(unmodifiedUrl) == "http://example.com/"
+
+# https://github.com/AmanoTeam/Unalix-nim/issues/5
+unmodifiedUrl = "https://docs.julialang.org/en/v1/stdlib/REPL/#Key-bindings"
+
+doAssert clearUrl(unmodifiedUrl) == unmodifiedUrl
