@@ -1,4 +1,4 @@
-import json
+import std/json
 
 let rulesetsNode*: JsonNode = %* [
     {

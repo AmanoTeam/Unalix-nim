@@ -1,10 +1,10 @@
-import parseopt
-import strformat
-import browsers
-import httpcore
-import net
-import strutils
-import times
+import std/parseopt
+import std/strformat
+import std/browsers
+import std/httpcore
+import std/net
+import std/strutils
+import std/times
 
 import ./core
 import ./exceptions
@@ -127,7 +127,7 @@ const
     commitHash: string = staticExec("git rev-parse --short HEAD")
     versionInfo: string = &"Unalix v{UNALIX_VERSION} ({repository}@{commitHash})" &
         "\n" &
-        &"Compiled for {hostOS} ({hostCPU}) using Nim {NimVersion}" &
+        &"Compiled for {hostOS} ({hostCPU}) using Nim {NimVersion} " &
         &"({CompileDate}, {CompileTime})" &
         "\n"
     longNoVal: seq[string] = @[
@@ -195,13 +195,13 @@ while true:
             quit(0)
         of "url":
             if parser.val == "":
-                stderr.write("unalix: missing required value for argument: --url\n")
+                stderr.write("unalix: faltal: missing required value for argument: --url\n")
                 quit(1)
             else:
                 url = parser.val
         of "u":
             if parser.val == "":
-                stderr.write("unalix: missing required value for argument: -u\n")
+                stderr.write("unalix: faltal: missing required value for argument: -u\n")
                 quit(1)
             else:
                 url = parser.val
@@ -246,38 +246,38 @@ while true:
             of "PATCH":
                 httpMethod = HttpPatch
             else:
-                stderr.write(&"unalix: unrecognized HTTP method: {parser.val}\n")
+                stderr.write(&"unalix: faltal: unrecognized HTTP method: {parser.val}\n")
                 quit(1)
         of "http-max-redirects":
             try:
                 httpMaxRedirects = parseInt(s = parser.val)
             except ValueError:
-                stderr.write(&"unalix: invalid numeric literal: {parser.val}\n")
+                stderr.write(&"unalix: faltal: invalid numeric literal: {parser.val}\n")
                 quit(1)
         of "http-max-timeout":
             try:
                 httpTimeout = parseInt(s = parser.val)
             except ValueError:
-                stderr.write(&"unalix: invalid numeric literal: {parser.val}\n")
+                stderr.write(&"unalix: faltal: invalid numeric literal: {parser.val}\n")
                 quit(1)
             httpTimeout = int(inMilliseconds(dur = initDuration(seconds = httpTimeout)))
         of "http-max-fetch-size":
             try:
                 httpMaxFetchSize = parseInt(s = parser.val)
             except ValueError:
-                stderr.write(&"unalix: invalid numeric literal: {parser.val}\n")
+                stderr.write(&"unalix: faltal: invalid numeric literal: {parser.val}\n")
                 quit(1)
         of "http-max-retries":
             try:
                 httpMaxRetries = parseInt(s = parser.val)
             except ValueError:
-                stderr.write(&"unalix: invalid numeric literal: {parser.val}\n")
+                stderr.write(&"unalix: faltal: invalid numeric literal: {parser.val}\n")
                 quit(1)
         of "disable-certificate-validation":
             sslContext = newContext(verifyMode = CVerifyNone)
         else:
             argument = if len(parser.key) > 1: fmt("--{parser.key}") else: fmt("-{parser.key}")
-            stderr.write(&"unalix: unrecognized argument: {argument}\n")
+            stderr.write(&"unalix: faltal: unrecognized argument: {argument}\n")
             quit(1)
     else:
         discard

@@ -1,5 +1,5 @@
-import strformat
-import httpcore
+import std/strformat
+import std/httpcore
 
 const
     UNALIX_VERSION*: string = "0.6.1"

@@ -1,16 +1,18 @@
-import asyncnet
-import asyncdispatch
-import sugar
-import tables
-import net
-import strutils
-import json
-import uri
-import re
-import os
-import strformat
-import httpcore
-import times
+import std/asyncnet
+import std/asyncdispatch
+import std/sugar
+import std/tables
+import std/net
+import std/strutils except unescape
+import std/json
+import std/uri
+import std/re
+import std/os
+import std/strformat
+import std/httpcore
+import std/times
+
+import htmlunescape
 
 import ./types
 import ./exceptions
@@ -521,7 +523,7 @@ proc unshortUrl*(
             
             if redirectMatches:
                 surl = clearUrl(
-                    url = requoteUri(uri = htmlUnescape(s = redirectLocation)),
+                    url = requoteUri(uri = unescape(s = redirectLocation)),
                     ignoreReferralMarketing = ignoreReferralMarketing,
                     ignoreRules = ignoreRules,
                     ignoreExceptions = ignoreExceptions,
@@ -569,7 +571,7 @@ proc aunshortUrl*(
     sslContext: SslContext = newContext(),
     httpMaxRetries: int = defaultHttpMaxRetries,
     httpStatusRetry: seq[HttpCode] = defaultHttpStatusRetry
-): Future[string] {.async.} = 
+): Future[string] {.async, gcsafe.} = 
 
     var
         totalRedirects, totalRetries, retryAfter, httpPort: int
@@ -899,7 +901,7 @@ proc aunshortUrl*(
             
             if redirectMatches:
                 surl = clearUrl(
-                    url = requoteUri(uri = htmlUnescape(s = redirectLocation)),
+                    url = requoteUri(uri = unescape(s = redirectLocation)),
                     ignoreReferralMarketing = ignoreReferralMarketing,
                     ignoreRules = ignoreRules,
                     ignoreExceptions = ignoreExceptions,

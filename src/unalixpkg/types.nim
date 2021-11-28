@@ -1,5 +1,5 @@
-import re
-import httpcore
+import std/re
+import std/httpcore
 
 type
     NodeKind* = enum

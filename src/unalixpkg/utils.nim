@@ -1,7 +1,7 @@
-import strutils
-import uri
-import sugar
-import strformat
+import std/strutils
+import std/uri
+import std/sugar
+import std/strformat
 
 const
     unreservedCharacters: string = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" &
@@ -10,93 +10,6 @@ const
         "-._~"
     safeWithPercent: string = "!#$%&'()*+,/:;=?@[]~"
     safeWithoutPercent: string = "!#$&'()*+,/:;=?@[]~"
-    htmlEscapeSequences: array[0..84, (string, string)] = [
-        ("&Agrave;", "À"),
-        ("&Aacute;", "Á"),
-        ("&Acirc;", "Â"),
-        ("&Atilde;", "Ã"),
-        ("&Auml;", "Ä"),
-        ("&Aring;", "Å"),
-        ("&agrave;", "à"),
-        ("&aacute;", "á"),
-        ("&acirc;", "â"),
-        ("&atilde;", "ã"),
-        ("&auml;", "ä"),
-        ("&aring;", "å"),
-        ("&AElig;", "Æ"),
-        ("&aelig;", "æ"),
-        ("&szlig;", "ß"),
-        ("&Ccedil;", "Ç"),
-        ("&ccedil;", "ç"),
-        ("&Egrave;", "È"),
-        ("&Eacute;", "É"),
-        ("&Ecirc;", "Ê"),
-        ("&Euml;", "Ë"),
-        ("&egrave;", "è"),
-        ("&eacute;", "é"),
-        ("&ecirc;", "ê"),
-        ("&euml;", "ë"),
-        ("&#131;", "ƒ"),
-        ("&Igrave;", "Ì"),
-        ("&Iacute;", "Í"),
-        ("&Icirc;", "Î"),
-        ("&Iuml;", "Ï"),
-        ("&igrave;", "ì"),
-        ("&iacute;", "í"),
-        ("&icirc;", "î"),
-        ("&iuml;", "ï"),
-        ("&Ntilde;", "Ñ"),
-        ("&ntilde;", "ñ"),
-        ("&Ograve;", "Ò"),
-        ("&Oacute;", "Ó"),
-        ("&Ocirc;", "Ô"),
-        ("&Otilde;", "Õ"),
-        ("&Ouml;", "Ö"),
-        ("&ograve;", "ò"),
-        ("&oacute;", "ó"),
-        ("&ocirc;", "ô"),
-        ("&otilde;", "õ"),
-        ("&ouml;", "ö"),
-        ("&Oslash;", "Ø"),
-        ("&oslash;", "ø"),
-        ("&#140;", "Œ"),
-        ("&#156;", "œ"),
-        ("&#138;", "Š"),
-        ("&#154;", "š"),
-        ("&Ugrave;", "Ù"),
-        ("&Uacute;", "Ú"),
-        ("&Ucirc;", "Û"),
-        ("&Uuml;", "Ü"),
-        ("&ugrave;", "ù"),
-        ("&uacute;", "ú"),
-        ("&ucirc;", "û"),
-        ("&uuml;", "ü"),
-        ("&#181;", "µ"),
-        ("&#215;", "×"),
-        ("&Yacute;", "Ý"),
-        ("&#159;", "Ÿ"),
-        ("&yacute;", "ý"),
-        ("&yuml;", "ÿ"),
-        ("&#176;", "°"),
-        ("&#134;", "†"),
-        ("&#135;", "‡"),
-        ("&lt;", "<"),
-        ("&gt;", ">"),
-        ("&amp;", "&"),
-        ("&quot;", "\""),
-        ("&#177;", "±"),
-        ("&#171;", "«"),
-        ("&#187;", "»"),
-        ("&#191;", "¿"),
-        ("&#161;", "¡"),
-        ("&#183;", "·"),
-        ("&#149;", "•"),
-        ("&#153;", "™"),
-        ("&copy;", "©"),
-        ("&reg;", "®"),
-        ("&#167;", "§"),
-        ("&#182;", "¶")
-    ]
 
 # Source: https://github.com/psf/requests/blob/v2.24.0/requests/utils.py#L570
 proc unquoteUnreserved(uri: string): string =
@@ -199,10 +112,3 @@ proc filterQuery*(
 
         result = params.join(sep = "&")
 
-
-proc htmlUnescape*(s: string): string =
-    # Unescape HTML sequences to it's UTF-8 representation
-    result = multiReplace(
-        s = s,
-        replacements = htmlEscapeSequences
-    )
