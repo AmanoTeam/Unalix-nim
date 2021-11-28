@@ -1,6 +1,6 @@
 # Package
 
-version = "0.6.1"
+version = "0.7"
 author = "SnwMds"
 description = "Small, dependency-free, fast Nim package for removing tracking fields from URLs."
 license = "LGPL-3.0"

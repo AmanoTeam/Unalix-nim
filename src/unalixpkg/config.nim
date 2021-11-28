@@ -2,7 +2,7 @@ import std/strformat
 import std/httpcore
 
 const
-    UNALIX_VERSION*: string = "0.6.1"
+    UNALIX_VERSION*: string = "0.7"
     UNALIX_REPOSITORY*: string = "https://github.com/AmanoTeam/Unalix-nim"
 
 const
