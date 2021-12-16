@@ -11,7 +11,6 @@ installExt = @["nim"]
 # Dependencies
 
 requires "nim >= 1.2.8"
-requires "htmlunescape >= 0.2"
 
 task test, "Runs the test suite":
   exec "nimble install --accept --depsOnly"

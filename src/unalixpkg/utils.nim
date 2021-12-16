@@ -2,6 +2,8 @@ import std/strutils
 import std/uri
 import std/sugar
 import std/strformat
+import std/re
+import std/htmlparser
 
 const
     unreservedCharacters: string = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" &
@@ -112,3 +114,30 @@ proc filterQuery*(
 
         result = params.join(sep = "&")
 
+proc unescape*(s: string): string =
+    ## Convert all named and numeric character references (e.g. `&gt;`, `&#62;`,
+    ## `&x3e;`) in the string `s` to the corresponding unicode characters.
+    ## This function uses the rules defined by the HTML 5 standard
+    ## for both valid and invalid character references, and the list of
+    ## HTML 5 named character references defined in `html.entities.html5`.
+    
+    if "&" notin s:
+        return s
+    
+    var replacements: seq[(string, string)] = newSeq[(string, string)]()
+    
+    for match in findAll(s = s, pattern = re"&(?:#[0-9]+;?|#[xX][0-9a-fA-F]+;?|[^\t\n\f <&#;]{1,32};?)"):
+        var entity: string = match
+        
+        entity.removePrefix(c = '&')
+        entity.removeSuffix(c = ';')
+        
+        let utf8Entity: string = entityToUtf8(entity = entity)
+        
+        if utf8Entity != "":
+            replacements.add((match, utf8Entity))
+
+    result = multiReplace(
+        s = s,
+        replacements = replacements
+    )

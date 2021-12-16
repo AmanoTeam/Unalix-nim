@@ -12,8 +12,6 @@ import std/strformat
 import std/httpcore
 import std/times
 
-import htmlunescape
-
 import ./types
 import ./exceptions
 import ./rulesets
