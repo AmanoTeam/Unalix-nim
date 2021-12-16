@@ -2,13 +2,13 @@ import std/re
 import std/httpcore
 
 type
-    NodeKind* = enum
+    NodeKind* {.final, pure.} = enum
         nkBool,
         nkString,
         nkRegex,
         nkSeqRegex,
         nkSeqString
-    RulesetNode* = ref object
+    RulesetNode* {.final, pure.} = ref object
         case kind*: NodeKind
         of nkBool:
             boolVal*: bool
@@ -20,12 +20,11 @@ type
             seqRegexVal*: seq[Regex]
         of nkSeqString:
             seqStringVal*: seq[string]
-    Response* = object
+    Response* {.final.} = object
         httpVersion*: HttpVersion
         statusCode*: HttpCode
         headers*: HttpHeaders
         body*: string
-    cbool* = bool
 
 func initResponse*(
     httpVersion: HttpVersion,

@@ -125,8 +125,12 @@ proc unescape*(s: string): string =
         return s
     
     var replacements: seq[(string, string)] = newSeq[(string, string)]()
+    var matches: seq[string] = newSeq[string]()
     
     for match in findAll(s = s, pattern = re"&(?:#[0-9]+;?|#[xX][0-9a-fA-F]+;?|[^\t\n\f <&#;]{1,32};?)"):
+        if match in matches:
+            continue
+        
         var entity: string = match
         
         entity.removePrefix(c = '&')
@@ -136,6 +140,7 @@ proc unescape*(s: string): string =
         
         if utf8Entity != "":
             replacements.add((match, utf8Entity))
+            matches.add(match)
 
     result = multiReplace(
         s = s,
