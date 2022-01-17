@@ -1,4 +1,4 @@
-import std/json
+import json
 
 let rulesetsNode*: JsonNode = %* [
     {
@@ -155,7 +155,7 @@ let rulesetsNode*: JsonNode = %* [
         "exceptions": [
             "^https?:\\/\\/mail\\.google\\.com\\/mail\\/u\\/",
             "^https?:\\/\\/(?:docs|accounts)\\.google(?:\\.[a-z]{2,}){1,}",
-            "^https?:\\/\\/drive\\.google\\.com\\/videoplayback",
+            "^https?:\\/\\/([a-z0-9-\\.])*drive\\.google\\.com\\/videoplayback",
             "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?google(?:\\.[a-z]{2,}){1,}(?:\\/upload)?\\/drive\\/",
             "^https?:\\/\\/news\\.google\\.com.*\\?hl=.",
             "^https?:\\/\\/hangouts\\.google\\.com\\/webchat.*?zx=.",
@@ -292,7 +292,9 @@ let rulesetsNode*: JsonNode = %* [
             "^https?:\\/\\/api\\.bilibili\\.com",
             "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?onet\\.pl\\/[^?]*\\?.*?utm_campaign=.",
             "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?stripe\\.com\\/[^?]+.*?&?referrer=[^/?&]*",
-            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?lichess\\.org\\/login.*?&?referrer=.*?"
+            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?lichess\\.org\\/login.*?&?referrer=.*?",
+            "^https?:\\/\\/like.co\\/api\\/like\\/likebutton\\/[^?]+.*?&?referrer=[^/?&]*",
+            "^https?:\\/\\/button.like.co\\/in\\/.*?&?referrer=[^/?&]*"
         ],
         "redirections": [],
         "forceRedirection": false
@@ -439,6 +441,7 @@ let rulesetsNode*: JsonNode = %* [
         "rules": [
             "(?:ref_?)?src",
             "s",
+            "t",
             "cn",
             "ref_url"
         ],
@@ -1696,7 +1699,8 @@ let rulesetsNode*: JsonNode = %* [
             "impid",
             "bftTag",
             "bftRwd",
-            "spm"
+            "spm",
+            "_u"
         ],
         "rawRules": [],
         "referralMarketing": [],
@@ -2554,6 +2558,91 @@ let rulesetsNode*: JsonNode = %* [
         "completeProvider": false,
         "rules": [
             "intcid"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "alibaba cloud arms",
+        "urlPattern": "^https?:\\/\\/arms-retcode\\.aliyuncs\\.com",
+        "completeProvider": false,
+        "rules": [
+            "pid",
+            "uid",
+            "tag",
+            "release",
+            "environment",
+            "sample",
+            "behavior",
+            "enableSPA",
+            "enableLinkTrace",
+            "page",
+            "begin",
+            "c2",
+            "c3",
+            "success",
+            "code",
+            "msg",
+            "api",
+            "traceId",
+            "pv_id",
+            "flag",
+            "sr",
+            "vp",
+            "ct",
+            "_v",
+            "sampling",
+            "dl",
+            "post_res"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "nikkei",
+        "urlPattern": "^https?://(?:[a-z0-9-]+\\.)*?nikkei\\.co(?:m|\\.jp)",
+        "completeProvider": false,
+        "rules": [
+            "adid",
+            "i_cid",
+            "n_cid",
+            "waad"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "weibo",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?weibo\\.(cn|com)",
+        "completeProvider": false,
+        "rules": [
+            "weibo_id",
+            "dt_dapp"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "fiverr.com",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?fiverr\\.com",
+        "completeProvider": false,
+        "rules": [
+            "context_referrer",
+            "source",
+            "ref_ctx_id",
+            "funnel"
         ],
         "rawRules": [],
         "referralMarketing": [],

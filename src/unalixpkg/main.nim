@@ -1,135 +1,25 @@
 import std/parseopt
 import std/strformat
 import std/browsers
-import std/httpcore
-import std/net
 import std/strutils
-import std/times
+import std/terminal
+import std/os
+import std/net
+import std/asyncdispatch
+import std/strscans
 
-import ./core
+import ../unalix
 import ./exceptions
 import ./config
 
-const helpMessage: string = &"""
-usage: unalix [-h] [-v] -u URL
-              [--ignore-referral]
-              [--ignore-generic]
-              [--ignore-exceptions]
-              [--ignore-raw]
-              [--ignore-redirections]
-              [--skip-blocked]
-              [--strip-duplicates]
-              [--strip-empty]
-              [--parse-documents] [-s]
-              [-l]
-              [--http-method METHOD]
-              [--http-max-redirects MAX_REDIRECTS]
-              [--http-max-timeout MAX_TIMEOUT]
-              [--http-max-fetch-size MAX_FETCH_SIZE]
-              [--http-max-retries MAX_RETRIES]
-              [--disable-certificate-validation]
-
-Unalix is a small, dependency-free, fast
-Nim package and CLI tool for removing
-tracking fields from URLs.
-
-optional arguments:
-  -h, --help        show this help
-                    message and exit
-  -v, --version     show version number
-                    and exit
-  -u URL, --url URL
-                    HTTP URL you want to
-                    unshort or remove
-                    tracking fields
-                    from. [default: read
-                    from stdin]
-  --ignore-referral
-                    Don't strip referral
-                    marketing fields.
-  --ignore-generic  Ignore generic
-                    rules.
-  --ignore-exceptions
-                    Ignore rule
-                    exceptions.
-  --ignore-raw      Ignore raw rules.
-  --ignore-redirections
-                    Ignore redirection
-                    rules.
-  --skip-blocked    Ignore rule
-                    processing for
-                    blocked URLs.
-  --strip-duplicates
-                    Strip fields with
-                    duplicate names.
-                    (might break the
-                    URL!)
-  --strip-empty     Strip fields with
-                    empty values. (might
-                    break the URL!)
-  --parse-documents
-                    Look for redirect
-                    URLs in the response
-                    body when there is
-                    no HTTP redirect to
-                    follow.
-  -s, --unshort     Unshort the given
-                    URL (HTTP requests
-                    will be made).
-  -l, --launch      Launch URL(s) with
-                    default browser.
-
-HTTP settings:
-  Arguments from this group only takes
-  effect when --unshort is set.
-
-  --http-method METHOD
-                    Default HTTP method
-                    for requests.
-                    [default: GET]
-  --http-max-redirects MAX_REDIRECTS
-                    Max number of HTTP
-                    redirects to follow
-                    before raising an
-                    exception. [default:
-                    {defaultHttpMaxRedirects}]
-  --http-max-timeout MAX_TIMEOUT
-                    Max number of
-                    seconds to wait for
-                    a response before
-                    raising an
-                    exception. [default:
-                    {initDuration(milliseconds = defaultHttpTimeout).inSeconds}]
-  --http-max-fetch-size MAX_FETCH_SIZE
-                    Max number of bytes
-                    to fetch from
-                    responses body. Only
-                    takes effect when
-                    --parse-documents is
-                    set. [default:
-                    {defaultHttpMaxFetchSize}]
-  --http-max-retries MAX_RETRIES
-                    Max number of times
-                    to retry on
-                    connection errors.
-                    [default: {defaultHttpMaxRetries}]
-  --disable-certificate-validation
-                    Disable TLS
-                    certificates
-                    validation
-
-Note, options that take an argument
-require a colon. E.g. -u:URL.
-"""
-
 const
-    repository: string = staticExec("git config --get remote.origin.url")
-    commitHash: string = staticExec("git rev-parse --short HEAD")
+    helpMessage: string = staticRead(filename = "../../external/help_message.txt").strip()
+    repository: string = staticExec(command = "git config --get remote.origin.url")
+    commitHash: string = staticExec(command = "git rev-parse --short HEAD")
     versionInfo: string = &"Unalix v{UNALIX_VERSION} ({repository}@{commitHash})" &
         "\n" &
         &"Compiled for {hostOS} ({hostCPU}) using Nim {NimVersion} " &
-        &"({CompileDate}, {CompileTime})" &
-        "\n"
+        &"({CompileDate}, {CompileTime})"
     longNoVal: seq[string] = @[
         "ignore-referral",
         "ignore-generic",
@@ -140,16 +30,14 @@ const
         "strip-duplicates",
         "strip-empty",
         "parse-documents",
-        "launch",
+        "strict-errors",
+        "launch-with-browser",
+        "timeout",
+        "max-redirects",
+        "disable-certificate-validation",
         "help",
         "version",
-        "unshort",
-        "http-method",
-        "http-max-redirects",
-        "http-max-timeout",
-        "http-max-fetch-size",
-        "http-max-retries",
-        "disable-certificate-validation",
+        "unshort"
     ]
     shortNoVal: set[char] = {
         'h',
@@ -158,26 +46,127 @@ const
         's'
     }
 
+const caFileContent: string = staticRead(filename = "../../external/cacert.pem")
+
+let
+    caDir: string = getConfigDir() / "unalix" / "cacert"
+    caFile: string = caDir / "cacert.pem"
+
+if not caFile.fileExists():
+    if not dirExists(dir = caDir):
+        createDir(dir = caDir)
+    
+    writeFile(filename = caFile, content = caFileContent)
+    setFilePermissions(filename = caFile, permissions = {fpUserRead})
+
+var sslContext: SslContext = newContext(
+    caDir = caDir,
+    caFile = caFile
+)
+
+setControlCHook(
+    hook = proc(): void {.noconv.} =
+        quit(0)
+)
+
 var
-    url, newUrl, argument: string
-    ignoreReferralMarketing, ignoreRules, ignoreExceptions, ignoreRawRules: bool
-    ignoreRedirections, skipBlocked, stripDuplicates, stripEmpty: bool
-    launch, unshort, parseDocuments: bool
-    parser: OptParser
-    httpMethod: HttpMethod = defaultHttpMethod
-    httpMaxRedirects: int = defaultHttpMaxRedirects
-    httpTimeout: int = defaultHttpTimeout
-    httpMaxFetchSize: int = defaultHttpMaxFetchSize
-    httpMaxRetries: int = defaultHttpMaxRetries
-    sslContext: SslContext = newContext()
+    urls: seq[string] = newSeq[string]()
+    ignoreReferralMarketing: bool = false
+    ignoreRules: bool = false
+    ignoreExceptions: bool = false
+    ignoreRawRules: bool = false
+    ignoreRedirections: bool = false
+    skipBlocked: bool = false
+    stripDuplicates: bool = false
+    stripEmpty: bool = false
 
-proc signalHandler() {.noconv.} =
-    stdout.write("\n")
-    quit(0)
+var
+    launchInBrowser: bool = false
+    unshort: bool = false
+    parseDocuments: bool = false
+    strictErrors: bool = false
+    timeout: int = DEFAULT_TIMEOUT
+    maxRedirects: int = DEFAULT_MAX_REDIRECTS
 
-setControlCHook(signalHandler)
+proc getPrefixedArgument*(s: string): string =
+    result = if len(s) > 1: "--" & s else: "-" & s
 
-parser = initOptParser(longNoVal = longNoVal, shortNoVal = shortNoVal)
+proc writeFatal*(msg: string, exitCode = -1): void =
+    
+    if stdout.isatty():
+        stderr.styledWriteLine(fgRed, "fatal: ", fgWhite, msg)
+    else:
+        stderr.write(&"faltal: {msg}\n")
+    
+    if exitCode >= 0:
+        quit(exitCode)
+
+proc writeError*(msg: string, exitCode = -1): void =
+    
+    if stdout.isatty():
+        stderr.styledWriteLine(fgRed, "error: ", fgWhite, msg)
+    else:
+        stderr.write(&"error: {msg}\n")
+    
+    if exitCode >= 0:
+        quit(exitCode)
+
+proc writeStdout*(msg: string, exitCode = -1): void =
+
+    stdout.write(&"{msg}\n")
+    
+    if exitCode >= 0:
+        quit(exitCode)
+
+proc handleUrl(url: string): void =
+    
+    var newUrl: string
+    
+    if unshort:
+        try:
+            newUrl = waitFor aunshortUrl(
+                url = url,
+                ignoreReferralMarketing = ignoreReferralMarketing,
+                ignoreRules = ignoreRules,
+                ignoreExceptions = ignoreExceptions,
+                ignoreRawRules = ignoreRawRules,
+                ignoreRedirections = ignoreRedirections,
+                skipBlocked = skipBlocked,
+                stripEmpty = stripEmpty,
+                stripDuplicates = stripDuplicates,
+                parseDocuments = parseDocuments,
+                timeout = timeout,
+                maxRedirects = maxRedirects,
+                sslContext = sslContext
+            )
+        except ConnectError as e:
+            let exception: ref Exception = if e.parent.isNil(): e else: e.parent
+            
+            if strictErrors:
+                writeFatal(msg = &"{exception.msg} [{exception.name}]", exitCode = 1)
+            else:
+                writeError(msg = &"{exception.msg} [{exception.name}]")
+            
+            newUrl = e.url
+    else:
+        newUrl = clearUrl(
+            url = url,
+            ignoreReferralMarketing = ignoreReferralMarketing,
+            ignoreRules = ignoreRules,
+            ignoreExceptions = ignoreExceptions,
+            ignoreRawRules = ignoreRawRules,
+            ignoreRedirections = ignoreRedirections,
+            skipBlocked = skipBlocked,
+            stripEmpty = stripEmpty,
+            stripDuplicates = stripDuplicates
+        )
+    
+    writeStdout(msg = newUrl)
+    
+    if launchInBrowser:
+        openDefaultBrowser(url = newUrl)
+
+var parser: OptParser = initOptParser(longNoVal = longNoVal, shortNoVal = shortNoVal)
 
 while true:
     parser.next()
@@ -188,23 +177,17 @@ while true:
     of cmdShortOption, cmdLongOption:
         case parser.key
         of "version", "v":
-            stdout.write(versionInfo)
-            quit(0)
+            writeStdout(msg = versionInfo, exitCode = 0)
         of "help", "h":
-            stdout.write(helpMessage)
-            quit(0)
-        of "url":
-            if parser.val == "":
-                stderr.write("unalix: faltal: missing required value for argument: --url\n")
-                quit(1)
-            else:
-                url = parser.val
-        of "u":
-            if parser.val == "":
-                stderr.write("unalix: faltal: missing required value for argument: -u\n")
-                quit(1)
-            else:
-                url = parser.val
+            writeStdout(msg = helpMessage, exitCode = 0)
+        of "u", "url":
+            if parser.val.isEmptyOrWhitespace():
+                writeFatal(
+                    msg = &"missing required value for argument: {getPrefixedArgument(parser.key)}",
+                    exitCode = 1
+                )
+            
+            urls.add(parser.val)
         of "ignore-referral":
             ignoreReferralMarketing = true
         of "ignore-generic":
@@ -222,141 +205,51 @@ while true:
         of "strip-empty":
             stripEmpty = true
         of "launch", "l":
-            launch = true
+            launchInBrowser = true
         of "unshort", "s":
             unshort = true
         of "parse-documents":
             parseDocuments = true
-        of "http-method":
-            case parser.val:
-            of "HEAD":
-                httpMethod = HttpHead
-            of "GET":
-                httpMethod = HttpGet
-            of "PUT":
-                httpMethod = HttpPut
-            of "DELETE":
-                httpMethod = HttpDelete
-            of "TRACE":
-                httpMethod = HttpTrace
-            of "OPTIONS":
-                httpMethod = HttpOptions
-            of "CONNECT":
-                httpMethod = HttpConnect
-            of "PATCH":
-                httpMethod = HttpPatch
-            else:
-                stderr.write(&"unalix: faltal: unrecognized HTTP method: {parser.val}\n")
-                quit(1)
-        of "http-max-redirects":
-            try:
-                httpMaxRedirects = parseInt(s = parser.val)
-            except ValueError:
-                stderr.write(&"unalix: faltal: invalid numeric literal: {parser.val}\n")
-                quit(1)
-        of "http-max-timeout":
-            try:
-                httpTimeout = parseInt(s = parser.val)
-            except ValueError:
-                stderr.write(&"unalix: faltal: invalid numeric literal: {parser.val}\n")
-                quit(1)
-            httpTimeout = int(inMilliseconds(dur = initDuration(seconds = httpTimeout)))
-        of "http-max-fetch-size":
-            try:
-                httpMaxFetchSize = parseInt(s = parser.val)
-            except ValueError:
-                stderr.write(&"unalix: faltal: invalid numeric literal: {parser.val}\n")
-                quit(1)
-        of "http-max-retries":
-            try:
-                httpMaxRetries = parseInt(s = parser.val)
-            except ValueError:
-                stderr.write(&"unalix: faltal: invalid numeric literal: {parser.val}\n")
-                quit(1)
+        of "strict-errors":
+            strictErrors = true
+        of "timeout":
+            if not scanf(input = parser.val, pattern = "$i$.", results = timeout):
+                writeFatal(
+                    msg = &"invalid numeric literal: {parser.val}",
+                    exitCode = 1
+                )
+            
+            timeout = timeout * 1000
+        of "max-redirects":
+            if not scanf(input = parser.val, pattern = "$i$.", results = maxRedirects):
+                writeFatal(
+                    msg = &"invalid numeric literal: {parser.val}",
+                    exitCode = 1
+                )
         of "disable-certificate-validation":
             sslContext = newContext(verifyMode = CVerifyNone)
         else:
-            argument = if len(parser.key) > 1: fmt("--{parser.key}") else: fmt("-{parser.key}")
-            stderr.write(&"unalix: faltal: unrecognized argument: {argument}\n")
-            quit(1)
-    else:
-        discard
+            writeFatal(
+                msg = &"unrecognized argument: {getPrefixedArgument(parser.key)}",
+                exitCode = 1
+            )
+    of cmdArgument:
+        if parser.key.isEmptyOrWhitespace():
+            writeFatal(
+                msg = "got empty URL when reading from args",
+                exitCode = 1
+            )
+            
+        urls.add(parser.key)
 
-if url == "":
-    for stdinUrl in stdin.lines:
-        if unshort:
-            newUrl = unshortUrl(
-                url = stdinUrl,
-                ignoreReferralMarketing = ignoreReferralMarketing,
-                ignoreRules = ignoreRules,
-                ignoreExceptions = ignoreExceptions,
-                ignoreRawRules = ignoreRawRules,
-                ignoreRedirections = ignoreRedirections,
-                skipBlocked = skipBlocked,
-                stripEmpty = stripEmpty,
-                stripDuplicates = stripDuplicates,
-                parseDocuments = parseDocuments,
-                httpMethod = httpMethod,
-                httpMaxRedirects = httpMaxRedirects,
-                httpTimeout = httpTimeout,
-                httpMaxFetchSize = httpMaxFetchSize,
-                httpMaxRetries = httpMaxRetries,
-                sslContext = sslContext
-            )
-        else:
-            newUrl = clearUrl(
-                url = stdinUrl,
-                ignoreReferralMarketing = ignoreReferralMarketing,
-                ignoreRules = ignoreRules,
-                ignoreExceptions = ignoreExceptions,
-                ignoreRawRules = ignoreRawRules,
-                ignoreRedirections = ignoreRedirections,
-                skipBlocked = skipBlocked,
-                stripEmpty = stripEmpty,
-                stripDuplicates = stripDuplicates
-            )
-        if launch:
-            stdout.write(&"Launching {newUrl}\n")
-        else:
-            stdout.write(&"{newUrl}\n")
-else:
-    if unshort:
-        try:
-            newUrl = unshortUrl(
-                url = url,
-                ignoreReferralMarketing = ignoreReferralMarketing,
-                ignoreRules = ignoreRules,
-                ignoreExceptions = ignoreExceptions,
-                ignoreRawRules = ignoreRawRules,
-                ignoreRedirections = ignoreRedirections,
-                skipBlocked = skipBlocked,
-                stripEmpty = stripEmpty,
-                stripDuplicates = stripDuplicates,
-                parseDocuments = parseDocuments,
-                httpMethod = httpMethod,
-                httpMaxRedirects = httpMaxRedirects,
-                httpTimeout = httpTimeout,
-                httpMaxFetchSize = httpMaxFetchSize,
-                httpMaxRetries = httpMaxRetries,
-                sslContext = sslContext
-            )
-        except ConnectError as e:
-            stderr.write(&"unalix: exception: {e.msg}\n")
-            newUrl = e.url
-    else:
-        newUrl = clearUrl(
-            url = url,
-            ignoreReferralMarketing = ignoreReferralMarketing,
-            ignoreRules = ignoreRules,
-            ignoreExceptions = ignoreExceptions,
-            ignoreRawRules = ignoreRawRules,
-            ignoreRedirections = ignoreRedirections,
-            skipBlocked = skipBlocked,
-            stripEmpty = stripEmpty,
-            stripDuplicates = stripDuplicates
-        )
-    if launch:
-        stderr.write(&"Launching {newUrl}\n")
-        openDefaultBrowser(newUrl)
-    else:
-        stdout.write(&"{newUrl}\n")
+let stdinIsAtty: bool = stdin.isatty()
+
+for url in urls:
+    handleUrl(url = url)
+
+if not stdinIsAtty:
+    for url in stdin.lines:
+        handleUrl(url = url)
+
+if stdinIsAtty and len(urls) == 0:
+    writeStdout(msg = helpMessage, exitCode = 0)

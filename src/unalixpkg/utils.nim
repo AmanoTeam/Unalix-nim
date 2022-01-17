@@ -13,6 +13,7 @@ const
     safeWithPercent: string = "!#$%&'()*+,/:;=?@[]~"
     safeWithoutPercent: string = "!#$&'()*+,/:;=?@[]~"
 
+
 # Source: https://github.com/psf/requests/blob/v2.24.0/requests/utils.py#L570
 proc unquoteUnreserved(uri: string): string =
     ## Un-escape any percent-escape sequences in a URI that are unreserved

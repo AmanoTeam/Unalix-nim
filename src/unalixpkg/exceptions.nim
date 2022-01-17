@@ -1,7 +1,7 @@
 type
-    ConnectError* = ref object of CatchableError
+    ConnectError* {.pure, inheritable.} = object of CatchableError
         url*: string
-    UnsupportedProtocolError* {.final.} = ref object of ConnectError
-    ReadError* {.final.} = ref object of ConnectError
-    TooManyRedirectsError* {.final.} = ref object of ConnectError
-    MaxRetriesError* {.final.} = ref object of ConnectError
+    UnsupportedProtocolError* {.final.} = object of ConnectError
+    RemoteProtocolError* {.final.} = object of ConnectError
+    ReadError* {.final.} = object of ConnectError
+    TooManyRedirectsError* {.final.} = object of ConnectError

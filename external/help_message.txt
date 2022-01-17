@@ -1,0 +1,29 @@
+usage: unalix [-h] [-v] -u URL [--ignore-referral] [--ignore-generic] [--ignore-exceptions] [--ignore-raw]
+              [--ignore-redirections] [--skip-blocked] [--strip-duplicates] [--strip-empty] [--parse-documents]
+              [-s] [-l] [--strict-errors] [--timeout TIMEOUT] [--max-redirects MAX_REDIRECTS]
+
+options:
+  -h, --help            show this help message and exit
+  -v, --version         show version number and exit
+  -u URL, --url URL     HTTP URL
+  --ignore-referral     Don't strip referral marketing fields
+  --ignore-generic      Don't strip generic tracking fields
+  --ignore-exceptions   Ignore rule exceptions
+  --ignore-raw          Don't strip raw tracking elements
+  --ignore-redirections
+                        Ignore redirection rules
+  --skip-blocked        Ignore rule processing for blocked URLs
+  --strip-duplicates    Strip fields with duplicate names. (might break the URL!)
+  --strip-empty         Strip fields with empty values. (might break the URL!)
+  --parse-documents     Look for redirect URLs in the response body when there is no HTTP redirect to follow
+  -s, --unshort         Unshort the given URL (HTTP requests will be made)
+  -l, --launch-with-browser
+                        Open URL with default browser
+  --strict-errors       Turn errors into fatal exceptions
+
+HTTP settings:
+  --timeout TIMEOUT     Max timeout in seconds
+  --max-redirects MAX_REDIRECTS
+                        Max number of allowed redirects
+
+Note, options that take an argument require a colon. E.g. -u:URL

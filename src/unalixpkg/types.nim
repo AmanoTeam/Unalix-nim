@@ -1,5 +1,6 @@
 import std/re
 import std/httpcore
+import std/net
 
 type
     NodeKind* {.final, pure.} = enum
@@ -21,18 +22,24 @@ type
         of nkSeqString:
             seqStringVal*: seq[string]
     Response* {.final.} = object
+        socket*: Socket
         httpVersion*: HttpVersion
         statusCode*: HttpCode
+        statusMessage*: string
         headers*: HttpHeaders
         body*: string
+    SyncUnalix* = object
+    AsyncUnalix* = object
 
 func initResponse*(
     httpVersion: HttpVersion,
     statusCode: HttpCode,
+    statusMessage: string,
     headers: HttpHeaders,
     body: string
 ): Response =
     result.httpVersion = httpVersion
     result.statusCode = statusCode
+    result.statusMessage = statusMessage
     result.headers = headers
     result.body = body    

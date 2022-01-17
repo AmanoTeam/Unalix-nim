@@ -28,24 +28,23 @@ ignored_providers = (
 for raw_url in urls:
 	print(f"Fetching data from {raw_url}...")
 
-	url = urllib.parse.urlparse(raw_url)
+	url = urllib.parse.urlparse(url = raw_url)
 
 	connection = http.client.HTTPSConnection(
-		host=url.netloc,
-		port=url.port
+		host = url.netloc,
+		port = url.port
 	)
 
 	connection.request(
-		method="GET",
-		url=url.path
+		method = "GET",
+		url = url.path
 	)
 	response = connection.getresponse()
-
 	content = response.read()
 	
 	connection.close()
 
-	rules = json.loads(content)
+	rules = json.loads(s = content)
 	
 	if raw_url.endswith("redirects_from_body.json"):
 		redirects = rules
@@ -70,10 +69,10 @@ for raw_url in urls:
 			"forceRedirection": rules["providers"][providerName].get("forceRedirection", False)
 		})
 
-with open(file="src/unalixpkg/rulesets.nim", mode="w", encoding="utf-8") as file:
+with open(file = "src/unalixpkg/rulesets.nim", mode = "w") as file:
 	file.write(
 		text.format(
-			json.dumps(rulesets, ensure_ascii=False, indent=4),
-			json.dumps(redirects, ensure_ascii=False, indent=4)
+			json.dumps(obj = rulesets, ensure_ascii = False, indent = 4),
+			json.dumps(obj = redirects, ensure_ascii = False, indent = 4)
 		)
 	)
