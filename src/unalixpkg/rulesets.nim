@@ -441,7 +441,6 @@ let rulesetsNode*: JsonNode = %* [
         "rules": [
             "(?:ref_?)?src",
             "s",
-            "t",
             "cn",
             "ref_url"
         ],
