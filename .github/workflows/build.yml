@@ -38,12 +38,6 @@ jobs:
     name: '${{ matrix.target.triple }} (${{ matrix.setting.branch }}, ${{ matrix.setting.commit }})'
     runs-on: ${{ matrix.builder }}
     steps:
-      - name: Checkout Unalix
-        uses: actions/checkout@v2
-        with:
-          repository: nim-lang/Nim
-          path: nim
-
       - name: Checkout Nim
         uses: actions/checkout@v2
         with:
@@ -73,6 +67,7 @@ jobs:
           echo "${PWD}/bin" >> "${GITHUB_PATH}"
 
       - name: Build Unalix
+        uses: actions/checkout@v2
         run: |
           nim compile \
             --opt:'speed' \
