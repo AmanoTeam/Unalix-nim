@@ -96,9 +96,9 @@ jobs:
           nim compile \
             --define:'libressl' \
             --define:'release' \
-            --dynOverride:'ssl' \
-            --dynOverride:'crypto' \
-            --dynOverride:'pcre' \
+            --dynlibOverride:'ssl' \
+            --dynlibOverride:'crypto' \
+            --dynlibOverride:'pcre' \
             --opt:'speed' \
             --define:'strip' \
             --define:'danger' \
