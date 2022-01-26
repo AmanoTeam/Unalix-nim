@@ -58,6 +58,7 @@ jobs:
 
       - name: Build Nim
         working-directory: nim/csources_v1
+        shell: bash
         run: |
           echo ${{ matrix.target.triple }}
           
@@ -68,3 +69,18 @@ jobs:
           ./bin/nim compile ./koch.nim
           ./koch boot
           ./koch nimble
+          
+          echo "${PWD}/bin" >> "${GITHUB_PATH}"
+
+      - name: Build Unalix
+        run: |
+          nim compile \
+            --opt:'speed' \
+            --define:'strip' \
+            --define:'danger' \
+            --panics:'on' \
+            --gc:'orc' \
+            --passC:'-Ofast' \
+            --passC:'-fwhole-program' \
+            --passC:'-flto=full' \
+            'Unalix-nim/src/unalixpkg/main.nim'
