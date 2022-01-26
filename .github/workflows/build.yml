@@ -94,11 +94,11 @@ jobs:
       - name: Build Unalix
         run: |
           nim compile \
-			--define:'libressl' \
-			--define:'release' \
-			--dynOverride:'ssl' \
-			--dynOverride:'crypto' \
-			--dynOverride:'pcre' \
+            --define:'libressl' \
+            --define:'release' \
+            --dynOverride:'ssl' \
+            --dynOverride:'crypto' \
+            --dynOverride:'pcre' \
             --opt:'speed' \
             --define:'strip' \
             --define:'danger' \
