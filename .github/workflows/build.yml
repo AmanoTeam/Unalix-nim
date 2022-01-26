@@ -62,15 +62,63 @@ jobs:
           
           echo "${PWD}/bin" >> "${GITHUB_PATH}"
 
-      - name: Build Unalix        
+      - name: Checkout PCRE
+        run: |
+          wget "https://download.sourceforge.net/project/pcre/pcre/8.45/pcre-8.45.tar.gz" --output-document='pcre.tar.gz'
+          tar --extract --file='pcre.tar.gz'
+          mv 'pcre-8.45' 'pcre'
+
+      - name: Build PCRE
+        working-directory: pcre
+        env:
+        	CFLAGS: "-s -w -Wfatal-errors -Ofast"
+        run: |
+          ./configure --disable-shared --enable-static
+          make --jobs
+          
+          echo "PCRE_STATIC_LIBRARY=$(realpath ./.libs/libpcre.a)" >> "${GITHUB_ENV}"
+
+      - name: Checkout LibreSSL
+        run: |
+          wget "https://cdn.openbsd.org/pub/OpenBSD/LibreSSL/libressl-3.4.2.tar.gz" --output-document='libressl.tar.gz'
+          tar --extract --file='libressl.tar.gz'
+          mv 'libressl-3.4.2' 'libressl'
+
+      - name: Build LibreSSL
+        working-directory: libressl
+        env:
+        	CFLAGS: "-s -w -Wfatal-errors -Ofast"
+        run: |
+          ./configure --disable-shared --enable-static
+          make --jobs
+          
+          echo "LIBRESSL_STATIC_LIBCRYPTO=$(realpath ./crypto/.libs/libcrypto.a)" >> "${GITHUB_ENV}"
+          echo "LIBRESSL_STATIC_LIBSSL=$(realpath ./crypto/.libs/libssl.a)" >> "${GITHUB_ENV}"
+
+      - name: Build Unalix
         run: |
           nim compile \
+			--define:'libressl' \
+			--define:'release' \
+			--dynOverride:'ssl' \
+			--dynOverride:'crypto' \
+			--dynOverride:'pcre' \
             --opt:'speed' \
             --define:'strip' \
             --define:'danger' \
             --panics:'on' \
             --gc:'orc' \
             --passC:'-Ofast' \
-            --passC:'-fwhole-program' \
             --passC:'-flto=full' \
+            --passL:'-static' \
+            --passL:'${{ env.PCRE_STATIC_LIBRARY }}' \
+            --passL:'${{ env.LIBRESSL_STATIC_LIBCRYPTO }}' \
+            --passL:'${{ env.LIBRESSL_STATIC_LIBSSL }}' \
+            --out:'./unalix' \
             'src/unalixpkg/main.nim'
+
+      - name: Upload APK
+        uses: actions/upload-artifact@main
+        with:
+          name: 'unalix-${{ matrix.target.triple }}'
+          path: unalix
