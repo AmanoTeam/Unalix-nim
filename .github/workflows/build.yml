@@ -70,10 +70,8 @@ jobs:
 
       - name: Build PCRE
         working-directory: pcre
-        env:
-        	CFLAGS: "-s -w -Wfatal-errors -Ofast"
         run: |
-          ./configure --disable-shared --enable-static
+          CFLAGS='-s -w -Wfatal-errors -Ofast' ./configure --disable-shared --enable-static
           make --jobs
           
           echo "PCRE_STATIC_LIBRARY=$(realpath ./.libs/libpcre.a)" >> "${GITHUB_ENV}"
@@ -86,10 +84,8 @@ jobs:
 
       - name: Build LibreSSL
         working-directory: libressl
-        env:
-        	CFLAGS: "-s -w -Wfatal-errors -Ofast"
         run: |
-          ./configure --disable-shared --enable-static
+          CFLAGS='-s -w -Wfatal-errors -Ofast' ./configure --disable-shared --enable-static
           make --jobs
           
           echo "LIBRESSL_STATIC_LIBCRYPTO=$(realpath ./crypto/.libs/libcrypto.a)" >> "${GITHUB_ENV}"
