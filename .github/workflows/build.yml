@@ -83,4 +83,4 @@ jobs:
             --passC:'-Ofast' \
             --passC:'-fwhole-program' \
             --passC:'-flto=full' \
-            'Unalix-nim/src/unalixpkg/main.nim'
+            'src/unalixpkg/main.nim'
