@@ -93,7 +93,7 @@ jobs:
 
       - name: Build Unalix
         run: |
-          ls
+          ls */*
           nim compile \
             --define:'libressl' \
             --define:'release' \
@@ -108,9 +108,9 @@ jobs:
             --passC:'-Ofast' \
             --passC:'-flto=full' \
             --passL:'-static' \
-            --passL:'./pcre/.libs/libpcre.a' \
-            --passL:'./libressl./crypto/.libs/libcrypto.a' \
-            --passL:'./libressl./crypto/.libs/libssl.a' \
+            --passL:$(realpath ./pcre/.libs/libpcre.a) \
+            --passL:$(realpath ./libressl./crypto/.libs/libcrypto.a) \
+            --passL:$(realpath ./libressl./crypto/.libs/libssl.a) \
             --out:'./unalix' \
             'src/unalixpkg/main.nim'
 
