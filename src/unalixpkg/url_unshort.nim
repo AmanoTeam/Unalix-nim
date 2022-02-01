@@ -140,7 +140,10 @@ proc parseHeaders(chunks: string): Response =
                 statusCode = Http401
                 statusMessage = "Unauthorized"
             of "402":
-                statusCode = HttpCode(402) # not available in Nim < 1.6
+                when (NimMajor, NimMinor) < (1, 6):
+                    statusCode = HttpCode(402)
+                else:
+                    statusCode = Http402
                 statusMessage = "Payment Required"
             of "403":
                 statusCode = Http403
