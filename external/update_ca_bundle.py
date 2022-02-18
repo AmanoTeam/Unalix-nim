@@ -19,5 +19,5 @@ content = response.read()
 
 connection.close()
 
-with open(file = "./cacert.pem", mode = "wb") as file:
+with open(file = "./external/cacert.pem", mode = "wb") as file:
     file.write(content)
