@@ -245,6 +245,7 @@ let rulesetsNode*: JsonNode = %* [
             "(?:%3F)?cmpid",
             "(?:%3F)?os_ehash",
             "(?:%3F)?_ga",
+            "(?:%3F)?_gl",
             "(?:%3F)?__twitter_impression",
             "(?:%3F)?wt_?z?mc",
             "(?:%3F)?wtrid",
@@ -294,7 +295,10 @@ let rulesetsNode*: JsonNode = %* [
             "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?stripe\\.com\\/[^?]+.*?&?referrer=[^/?&]*",
             "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?lichess\\.org\\/login.*?&?referrer=.*?",
             "^https?:\\/\\/like.co\\/api\\/like\\/likebutton\\/[^?]+.*?&?referrer=[^/?&]*",
-            "^https?:\\/\\/button.like.co\\/in\\/.*?&?referrer=[^/?&]*"
+            "^https?:\\/\\/button.like.co\\/in\\/.*?&?referrer=[^/?&]*",
+            "^https?:\\/\\/www\\.mma\\.go\\.kr",
+            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?github\\.com",
+            "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?billiger\\.de\\/.*?mc="
         ],
         "redirections": [],
         "forceRedirection": false
@@ -408,7 +412,7 @@ let rulesetsNode*: JsonNode = %* [
             "[a-z]*ref[a-z]*",
             "__tn__",
             "eid",
-            "__xts__(?:\\[|%5B)\\d(?:\\]|%5D)",
+            "__(?:xts|cft)__(?:\\[|%5B)\\d(?:\\]|%5D)",
             "comment_tracking",
             "dti",
             "app",
@@ -417,7 +421,10 @@ let rulesetsNode*: JsonNode = %* [
             "pageid",
             "padding",
             "ls_ref",
-            "action_history"
+            "action_history",
+            "tracking",
+            "referral_code",
+            "referral_story_type"
         ],
         "rawRules": [],
         "referralMarketing": [],
@@ -2642,6 +2649,103 @@ let rulesetsNode*: JsonNode = %* [
             "source",
             "ref_ctx_id",
             "funnel"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "etsy.com",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?etsy\\.com",
+        "completeProvider": false,
+        "rules": [
+            "click_key",
+            "click_sum",
+            "organic_search_click"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "magento.com",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?magento\\.com",
+        "completeProvider": false,
+        "rules": [
+            "itm_campaign",
+            "itm_medium",
+            "itm_source",
+            "itm_term"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "novinky.cz",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?novinky\\.cz",
+        "completeProvider": false,
+        "rules": [
+            "dop_ab_variant",
+            "dop_source_zone_name",
+            "dop_req_id",
+            "dop_id",
+            "source",
+            "seq_no"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "aktualne.cz",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?aktualne\\.cz",
+        "completeProvider": false,
+        "rules": [
+            "dop_ab_variant",
+            "dop_source_zone_name",
+            "dop_req_id",
+            "dop_id"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "seznamzpravy.cz",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?seznamzpravy\\.cz",
+        "completeProvider": false,
+        "rules": [
+            "dop_ab_variant",
+            "dop_source_zone_name",
+            "dop_req_id",
+            "dop_id",
+            "source",
+            "seq_no"
+        ],
+        "rawRules": [],
+        "referralMarketing": [],
+        "exceptions": [],
+        "redirections": [],
+        "forceRedirection": false
+    },
+    {
+        "providerName": "billiger.de",
+        "urlPattern": "^https?:\\/\\/(?:[a-z0-9-]+\\.)*?billiger\\.de",
+        "completeProvider": false,
+        "rules": [
+            "log",
+            "p"
         ],
         "rawRules": [],
         "referralMarketing": [],
