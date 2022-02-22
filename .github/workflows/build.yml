@@ -84,7 +84,7 @@ jobs:
     - name: Set LIBRESSL_STATIC_LIBCRYPTO
       run: echo "LIBRESSL_STATIC_LIBCRYPTO=$(realpath ./libressl/crypto/.libs/libcrypto.a)" >> "${GITHUB_ENV}"
     - name: Set LIBRESSL_STATIC_LIBSSL
-      run: echo "LIBRESSL_STATIC_LIBSSL=$(realpath ./libressl/crypto/.libs/libssl.a)" >> "${GITHUB_ENV}"
+      run: echo "LIBRESSL_STATIC_LIBSSL=$(realpath ./libressl/ssl/.libs/libssl.a)" >> "${GITHUB_ENV}"
     - name: Build Unalix
       shell: bash
       run: |
