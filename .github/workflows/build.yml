@@ -23,10 +23,10 @@ jobs:
         include:
           - target:
               os: linux
-            builder: ubuntu-18.04
+            builder: ubuntu-latest
           - target:
               os: macosx
-            builder: macos-10.15
+            builder: macos-latest
 
     name: '${{ matrix.target.triple }} (${{ matrix.setting.branch }}, ${{ matrix.setting.commit }})'
     runs-on: ${{ matrix.builder }}
@@ -86,25 +86,21 @@ jobs:
     - name: Set LIBRESSL_STATIC_LIBSSL
       run: echo "LIBRESSL_STATIC_LIBSSL=$(realpath ./crypto/.libs/libssl.a)" >> "${GITHUB_ENV}"
     - name: Build Unalix
+      shell: bash
       run: |
-        ls */*
         nim compile \
         --define:'libressl' \
         --define:'release' \
         --dynlibOverride:'ssl' \
         --dynlibOverride:'crypto' \
         --dynlibOverride:'pcre' \
-        --opt:'speed' \
+        --opt:'size' \
         --define:'strip' \
         --define:'danger' \
         --panics:'on' \
         --gc:'orc' \
         --passC:'-Ofast' \
-        --passC:'-flto=full' \
-        --passL:'-static' \
-        --passL:"${{ env.PCRE_STATIC_LIBRARY }}" \
-        --passL:"${{ env.LIBRESSL_STATIC_LIBCRYPTO }}" \
-        --passL:"${{ env.LIBRESSL_STATIC_LIBSSL }}" \
+        --passC:'-flto=full' --passL:'-static' --passL:'${{ env.PCRE_STATIC_LIBRARY }}' --passL:'${{ env.LIBRESSL_STATIC_LIBCRYPTO }}' --passL:'${{ env.LIBRESSL_STATIC_LIBSSL }}' \
         --out:'./unalix' \
         'src/unalixpkg/main.nim'
 
