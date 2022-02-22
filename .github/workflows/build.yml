@@ -99,8 +99,10 @@ jobs:
         --define:'danger' \
         --panics:'on' \
         --gc:'orc' \
-        --passC:'-Ofast' \
-        --passC:'-flto=full' --passL:'-static' --passL:'${{ env.PCRE_STATIC_LIBRARY }}' --passL:'${{ env.LIBRESSL_STATIC_LIBCRYPTO }}' --passL:'${{ env.LIBRESSL_STATIC_LIBSSL }}' \
+        --passL:'-static' \
+        --passL:'${{ env.PCRE_STATIC_LIBRARY }}' \
+        --passL:'${{ env.LIBRESSL_STATIC_LIBCRYPTO }}' \
+        --passL:'${{ env.LIBRESSL_STATIC_LIBSSL }}' \
         --out:'./unalix' \
         'src/unalixpkg/main.nim'
 
