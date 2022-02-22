@@ -5,7 +5,6 @@ import std/asyncnet
 import std/sequtils
 import std/strutils except unescape
 import std/sugar
-import std/strformat
 import std/nativesockets
 import std/httpcore
 import std/json
@@ -73,7 +72,7 @@ proc parseHeaders(chunks: string): Response =
                 raise (ref RemoteProtocolError)(msg: "Malformed server response")
             
             if values[0] != "HTTP":
-                raise (ref RemoteProtocolError)(msg: &"Unknown protocol name: {values[0]}")
+                raise (ref RemoteProtocolError)(msg: "Unknown protocol name: $1" % [values[0]])
             
             case values[1]
             of "1.0":
@@ -81,7 +80,7 @@ proc parseHeaders(chunks: string): Response =
             of "1.1":
                 httpVersion = HttpVer11
             else:
-                raise (ref RemoteProtocolError)(msg: &"Unsupported protocol version: {values[1]}")
+                raise (ref RemoteProtocolError)(msg: "Unsupported protocol version: $1" % [values[1]])
             
             # Parse status code
             case parts[1]
@@ -209,7 +208,7 @@ proc parseHeaders(chunks: string): Response =
                 statusCode = Http505
                 statusMessage = "HTTP Version not supported"
             else:
-                raise (ref RemoteProtocolError)(msg: &"Unknown status code: {parts[1]}")
+                raise (ref RemoteProtocolError)(msg: "Unknown status code: $1" % [parts[1]])
             
             continue
 
@@ -235,6 +234,14 @@ proc closeFd(self: Socket | AsyncSocket): void =
         fd.close()
     else:
         fd.close()
+
+proc resolveHostname(hostname: string, port: Port): string =
+    
+    let ai: ptr AddrInfo = getAddrInfo(address = hostname, port = port, domain = AF_UNSPEC)
+    let address: ptr SockAddr = ai.ai_addr
+
+    result = address.getAddrString()
+    freeAddrInfo(a1 = ai)
 
 proc unshortUrl*(
     self: SyncUnalix | AsyncUnalix,
@@ -270,37 +277,15 @@ proc unshortUrl*(
     )
 
     var currentRedirects: int = 0
-    
-    let maxFetch: int = 5120
-    
+
     while true:
         if not (thisUrl.startsWith(prefix = "http") or thisUrl.startsWith(prefix = "https")):
             raise (ref UnsupportedProtocolError)(msg: "Unrecognized URI or unsupported protocol", url: thisUrl)
-        
-        when self is AsyncUnalix:
-            let socket: AsyncSocket = newAsyncSocket(
-                domain = AF_INET,
-                sockType = SOCK_STREAM,
-                protocol = IPPROTO_TCP,
-                buffered = false
-            )
-        else:
-            let socket: Socket = newSocket(
-                domain = AF_INET,
-                sockType = SOCK_STREAM,
-                protocol = IPPROTO_TCP,
-                buffered = false
-            )
 
-        socket.setSockOpt(opt = OptNoDelay, value = true, level = IPPROTO_TCP.cint)
-        
-        if thisUrl.startsWith(prefix = "https"):
-            wrapSocket(ctx = sslContext, socket = socket)
-        
         var uri: Uri = parseUri(uri = thisUrl)
-        
+
         # Get port
-        let port: int = 
+        let port: int = (
             if uri.port.isEmptyOrWhitespace():
                 case uri.scheme
                 of "http":
@@ -311,28 +296,82 @@ proc unshortUrl*(
                     0
             else:
                 uri.port.parseInt()
-        
-        # Get hostname
-        let hostname: string = if (uri.scheme == "http" and port != 80) or (uri.scheme == "https" and port != 443): &"{uri.hostname}:{port}" else: uri.hostname
+        )
 
+        let address: IpAddress = (
+            if isIpAddress(addressStr = uri.hostname):
+                parseIpAddress(addressStr = uri.hostname)
+            else:
+                try:
+                    parseIpAddress(addressStr = resolveHostname(hostname = uri.hostname, port = Port(port)))
+                except Exception as e:
+                    raise (ref ResolverError)(msg: e.msg, url: thisUrl, parent: e)
+        )
+        
+        let domain: Domain = (
+            case address.family
+            of IPv6:
+                AF_INET6
+            of IPv4:
+                AF_INET
+        )
+
+        # Build hostname
+        let hostname: string = (
+            if (uri.scheme == "http" and port != 80) or (uri.scheme == "https" and port != 443):
+                if isIpAddress(addressStr = uri.hostname) and (domain == AF_INET6):
+                    "[$1]:$2" % [uri.hostname, $port]
+                else:
+                    "$1:$2" % [uri.hostname, $port]
+            else:
+                if isIpAddress(addressStr = uri.hostname) and (domain == AF_INET6):
+                    "[$1]" % [uri.hostname]
+                else:
+                    uri.hostname
+        )
+
+        when self is AsyncUnalix:
+            let socket: AsyncSocket = newAsyncSocket(
+                domain = domain,
+                sockType = SOCK_STREAM,
+                protocol = IPPROTO_TCP,
+                buffered = false
+            )
+        else:
+            let socket: Socket = newSocket(
+                domain = domain,
+                sockType = SOCK_STREAM,
+                protocol = IPPROTO_TCP,
+                buffered = false
+            )
+
+        socket.setSockOpt(opt = OptNoDelay, value = true, level = IPPROTO_TCP.cint)
+        
         # Build raw HTTP request
         if uri.path.isEmptyOrWhitespace():
             uri.path = "/"
         
         let data: string = (
-            "GET " & (if uri.query.isEmptyOrWhitespace(): uri.path else:  &"{uri.path}?{uri.query}") & " HTTP/1.0\n" &
-            &"Host: {hostname}\n" & (
-                block: collect newSeq: (
-                    for (key, value) in headers:
-                        &"{key}: {value}"
-                )
-            ).join(sep = "\n") & "\n\n"
+            "GET $1 HTTP/1.0\nHost: $2\n$3\n\n" % [
+                (
+                    if uri.query.isEmptyOrWhitespace():
+                        uri.path
+                    else:
+                        "$1?$2" % [uri.path, uri.query]
+                ),
+                hostname,
+                (
+                    block: collect newSeq: (
+                        for (key, value) in headers:
+                            "$1: $2" % [key, value]
+                    )
+                ).join(sep = "\n")
+            ]
         )
 
         # Attempt to connect
         when self is AsyncUnalix:
-
-            let future: Future[void] = socket.connect(address = uri.hostname, port = Port(port))
+            let future: Future[void] = socket.connect(address = $address, port = Port(port))
             try:
                 await future or sleepAsync(ms = timeout)
             except Exception as e:
@@ -344,7 +383,7 @@ proc unshortUrl*(
 
             if future.failed():
                 socket.closeFd()
-                
+
                 let e: ref Exception = future.readError()
                 raise (ref ConnectError)(msg: e.msg, url: thisUrl, parent: e)
         else:
@@ -352,21 +391,29 @@ proc unshortUrl*(
                 when (NimMajor, NimMinor) < (1, 6):
                     # See https://github.com/nim-lang/Nim/issues/15215
                     if socket.isSsl():
-                        socket.connect(address = uri.hostname, port = Port(port))
+                        socket.connect(address = $address, port = Port(port))
                     else:
-                        socket.connect(address = uri.hostname, port = Port(port), timeout = timeout)
+                        socket.connect(address = $address, port = Port(port), timeout = timeout)
                 else:
-                    socket.connect(address = uri.hostname, port = Port(port), timeout = timeout)
+                    socket.connect(address = $address, port = Port(port), timeout = timeout)
             except Exception as e:
                 socket.closeFd()
                 raise (ref ConnectError)(msg: e.msg, url: thisUrl, parent: e)
-        
+
+        if uri.scheme == "https":
+            wrapConnectedSocket(
+                ctx = sslContext,
+                socket = socket,
+                handshake = handshakeAsClient,
+                hostname = uri.hostname
+            )
+
         # Send request
         await socket.send(data = data)
-        
+
         # Start reading headers
         var chunks: string
-        
+
         while not anyIt(["\r\n\r\n", "\n\n"], it in chunks):
             when self is AsyncUnalix:
                 let future: Future[string] = socket.recv(size = 100)
@@ -374,60 +421,70 @@ proc unshortUrl*(
 
                 if not future.finished():
                     future.fail(error = (ref TimeoutError)(msg: "Call to 'recv' timed out."))
-                
+
                 if future.failed():
                     socket.closeFd()
-                    
+
                     let e: ref Exception = future.readError()
                     raise (ref ReadError)(msg: e.msg, url: thisUrl, parent: e)
-                
+
                 let data: string = future.read()
             else:
-                var data: string
-                
-                try:
-                    data = socket.recv(size = 100, timeout = timeout)
-                except Exception as e:
-                    socket.closeFd()
-                    raise (ref ReadError)(msg: e.msg, url: thisUrl, parent: e)
-            
+                let data: string = (
+                    try:
+                        socket.recv(size = 100, timeout = timeout)
+                    except Exception as e:
+                        socket.closeFd()
+                        raise (ref ReadError)(msg: e.msg, url: thisUrl, parent: e)
+                )
+
             if len(data) < 1:
                 break
-            
+
             chunks.add(y = data)
 
         # Parse headers
-        var response: Response
-        
-        try:
-            response = parseHeaders(chunks = chunks)
-        except RemoteProtocolError as e:
-            socket.closeFd()
-            
-            e.url = thisUrl
-            raise e
-        
+        var response: Response = (
+            try:
+                parseHeaders(chunks = chunks)
+            except RemoteProtocolError as e:
+                socket.closeFd()
+
+                e.url = thisUrl
+                raise e
+        )
+
         # Handle HTTP redirects
         var location: string
-        
+
         if response.statusCode.is3xx() and response.headers.hasKey(key = "Location"):
             location = response.headers["Location"].toString()
         elif response.statusCode.is2xx() and response.headers.hasKey(key = "Content-Location"):
             location = response.headers["Content-Location"].toString()
-    
+
         if not location.isEmptyOrWhitespace():
             socket.closeFd()
-            
+
             location = location.replace(sub = " ", by = "%20")
-            
+
             if not (location.startsWith(prefix = "https://") or location.startsWith(prefix = "http://")):
                 if location.startsWith(prefix = "//"):
-                    location = &"{uri.scheme}://" & location.replace(sub = peg"^ '/' *", by = "") 
+                    location = "$1://$2" % [uri.scheme, location.replace(sub = peg"^ '/' *", by = "")]
                 elif location.startsWith(prefix = '/'):
-                    location = &"{uri.scheme}://{hostname}{location}"
+                    location = "$1://$2$3" % [uri.scheme, hostname, location]
                 else:
-                    location = &"{uri.scheme}://{hostname}" & (if uri.path != "/": parentDir(uri.path) else: uri.path) & location
-            
+                    location = "$1://$2$3$4" % [
+                        uri.scheme,
+                        hostname,
+                        (
+                            if uri.path == "/":
+                                uri.path
+                            else:
+                                parentDir(path = uri.path)
+                        ),
+                        location
+                    ]
+
             # Avoid redirect loops
             if location == thisUrl:
                 return thisUrl
@@ -451,47 +508,47 @@ proc unshortUrl*(
                 raise (ref TooManyRedirectsError)(msg: "Exceeded maximum allowed redirects", url: thisUrl)
 
             continue
-    
+
         if parseDocuments:
-            while len(response.body) <= maxFetch:
+            while len(response.body) <= DEFAULT_MAX_FETCH_SIZE:
                 when self is AsyncUnalix:
                     let future: Future[string] = socket.recv(size = 100)
                     await future or sleepAsync(ms = timeout)
-                    
+
                     if not future.finished():
                         future.fail(error = (ref TimeoutError)(msg: "Call to 'recv' timed out."))
-                    
+
                     if future.failed():
                         socket.closeFd()
-                        
+
                         let e: ref Exception = future.readError()
                         raise (ref ReadError)(msg: e.msg, url: thisUrl, parent: e)
-                    
+
                     let data: string = future.read()
                 else:
-                    var data: string
-                    
-                    try:
-                        data = socket.recv(size = 100, timeout = timeout)
-                    except Exception as e:
-                        socket.closeFd()
-                        raise (ref ReadError)(msg: e.msg, url: thisUrl, parent: e)
-                
+                    let data: string = (
+                        try:
+                            socket.recv(size = 100, timeout = timeout)
+                        except Exception as e:
+                            socket.closeFd()
+                            raise (ref ReadError)(msg: e.msg, url: thisUrl, parent: e)
+                    )
+
                 if len(data) < 1:
                     break
-                
+
                 response.body.add(y = data)
-            
+
             socket.closeFd()
-            
+
             if response.headers.hasKey(key = "Content-Length"):
                 # If there is a "Content-Length" header field in the response we will check if it matches
                 # the length of the response body
                 let contentLength: int = response.headers["Content-Length"].toString().parseInt()
 
-                if contentLength <= maxFetch and len(response.body) != contentLength:
-                    raise (ref RemoteProtocolError)(msg: &"Server closed connection without sending complete message body (received {len(response.body)} bytes, expected {contentLength})", url: thisUrl)
-            
+                if contentLength <= DEFAULT_MAX_FETCH_SIZE and len(response.body) != contentLength:
+                    raise (ref RemoteProtocolError)(msg: "Server closed connection without sending complete message body (received $1 bytes, expected $2)" % [$len(response.body), $contentLength], url: thisUrl)
+
             var redirectMatches: bool = false
 
             block loop:
@@ -499,11 +556,11 @@ proc unshortUrl*(
                     if thisUrl.match(pattern = redirect["urlPattern"].regexVal):
                         for ruleset in redirect["rules"].seqRegexVal:
                             var matches: array[0..1, string]
-                            
+
                             if response.body.find(pattern = ruleset, matches = matches) > -1:
                                 (location, redirectMatches) = (matches[0], true)
                                 break loop
-            
+
             if redirectMatches:
                 thisUrl = clearUrl(
                     url = requoteUri(uri = unescape(s = location)),
@@ -516,14 +573,14 @@ proc unshortUrl*(
                     stripDuplicates = stripDuplicates,
                     stripEmpty = stripEmpty
                 )
-                
+
                 inc currentRedirects
-                
+
                 if currentRedirects > maxRedirects:
                     raise (ref TooManyRedirectsError)(msg: "Exceeded maximum allowed redirects", url: thisUrl)
-                
+
                 continue
         else:
             socket.closeFd()
-        
+
         return thisUrl

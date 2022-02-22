@@ -1,7 +1,9 @@
 type
-    ConnectError* {.pure, inheritable.} = object of CatchableError
+    UnalixException* {.pure, inheritable.} = object of CatchableError
         url*: string
-    UnsupportedProtocolError* {.final.} = object of ConnectError
-    RemoteProtocolError* {.final.} = object of ConnectError
-    ReadError* {.final.} = object of ConnectError
-    TooManyRedirectsError* {.final.} = object of ConnectError
+    ConnectError* {.final.} = object of UnalixException
+    ResolverError* {.final.} = object of UnalixException
+    UnsupportedProtocolError* {.final.} = object of UnalixException
+    RemoteProtocolError* {.final.} = object of UnalixException
+    ReadError* {.final.} = object of UnalixException
+    TooManyRedirectsError* {.final.} = object of UnalixException

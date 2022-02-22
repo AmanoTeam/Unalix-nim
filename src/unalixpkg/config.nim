@@ -13,3 +13,4 @@ const
     ]
     DEFAULT_MAX_REDIRECTS*: int = 13
     DEFAULT_TIMEOUT*: int = 3000
+    DEFAULT_MAX_FETCH_SIZE*: int = 5120
