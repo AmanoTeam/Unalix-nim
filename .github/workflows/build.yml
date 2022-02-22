@@ -23,10 +23,10 @@ jobs:
         include:
           - target:
               os: linux
-            builder: ubuntu-latest
+            builder: ubuntu-18.04
           - target:
               os: macosx
-            builder: macos-latest
+            builder: macos-10.15
 
     name: '${{ matrix.target.triple }} (${{ matrix.setting.branch }}, ${{ matrix.setting.commit }})'
     runs-on: ${{ matrix.builder }}
@@ -99,7 +99,6 @@ jobs:
         --define:'danger' \
         --panics:'on' \
         --gc:'orc' \
-        --passL:'-static' \
         --passL:'${{ env.PCRE_STATIC_LIBRARY }}' \
         --passL:'${{ env.LIBRESSL_STATIC_LIBCRYPTO }}' \
         --passL:'${{ env.LIBRESSL_STATIC_LIBSSL }}' \
