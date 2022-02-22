@@ -68,7 +68,7 @@ jobs:
         ./configure --disable-cpp --disable-shared --enable-static
         make --jobs
     - name: Set PCRE_STATIC_LIBRARY
-      run: echo "PCRE_STATIC_LIBRARY=$(realpath ./.libs/libpcre.a)" >> "${GITHUB_ENV}"
+      run: echo "PCRE_STATIC_LIBRARY=$(realpath ./pcre/.libs/libpcre.a)" >> "${GITHUB_ENV}"
     - name: Checkout LibreSSL
       run: |
         wget "https://cdn.openbsd.org/pub/OpenBSD/LibreSSL/libressl-3.4.2.tar.gz" --output-document='libressl.tar.gz'
@@ -82,9 +82,9 @@ jobs:
         ./configure --disable-tests --disable-shared --enable-static
         make --jobs
     - name: Set LIBRESSL_STATIC_LIBCRYPTO
-      run: echo "LIBRESSL_STATIC_LIBCRYPTO=$(realpath ./crypto/.libs/libcrypto.a)" >> "${GITHUB_ENV}"
+      run: echo "LIBRESSL_STATIC_LIBCRYPTO=$(realpath ./libressl/crypto/.libs/libcrypto.a)" >> "${GITHUB_ENV}"
     - name: Set LIBRESSL_STATIC_LIBSSL
-      run: echo "LIBRESSL_STATIC_LIBSSL=$(realpath ./crypto/.libs/libssl.a)" >> "${GITHUB_ENV}"
+      run: echo "LIBRESSL_STATIC_LIBSSL=$(realpath ./libressl/crypto/.libs/libssl.a)" >> "${GITHUB_ENV}"
     - name: Build Unalix
       shell: bash
       run: |
