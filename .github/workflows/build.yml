@@ -1,115 +1,115 @@
 name: Nightlies
 on:
-	push:
-		branches:
-			- misc
+    push:
+        branches:
+            - misc
 
 jobs:
-	build:
-		strategy:
-			fail-fast: false
-			matrix:
-				target:
-					- os: linux
-						triple: x86_64-linux-musl
-					- os: linux
-						triple: i686-linux-musl
-					- os: linux
-						triple: aarch64-linux-musl
-					- os: linux
-						triple: armv7l-linux-musleabihf
-					- os: macosx
-						triple: x86_64-apple-darwin14
-				include:
-					- target:
-							os: linux
-						builder: ubuntu-18.04
-					- target:
-							os: macosx
-						builder: macos-10.15
+    build:
+        strategy:
+            fail-fast: false
+            matrix:
+                target:
+                    - os: linux
+                        triple: x86_64-linux-musl
+                    - os: linux
+                        triple: i686-linux-musl
+                    - os: linux
+                        triple: aarch64-linux-musl
+                    - os: linux
+                        triple: armv7l-linux-musleabihf
+                    - os: macosx
+                        triple: x86_64-apple-darwin14
+                include:
+                    - target:
+                            os: linux
+                        builder: ubuntu-18.04
+                    - target:
+                            os: macosx
+                        builder: macos-10.15
 
-		name: '${{ matrix.target.triple }} (${{ matrix.setting.branch }}, ${{ matrix.setting.commit }})'
-		runs-on: ${{ matrix.builder }}
-		steps:
-		- name: Checkout Unalix
-			uses: actions/checkout@v2
-		- name: Checkout Nim
-			uses: actions/checkout@v2
-			with:
-				repository: nim-lang/Nim
-				path: nim
-		- name: Checkout Nim csources
-			uses: actions/checkout@v2
-			with:
-				repository: nim-lang/csources_v1
-				path: nim/csources_v1
-		- name: Build Nim devel
-			working-directory: nim/csources_v1
-			shell: bash
-			run: |
-				make --jobs
-				cd ../
-				
-				./bin/nim compile ./koch.nim
-				./koch boot
-				./koch nimble
+        name: '${{ matrix.target.triple }} (${{ matrix.setting.branch }}, ${{ matrix.setting.commit }})'
+        runs-on: ${{ matrix.builder }}
+        steps:
+        - name: Checkout Unalix
+            uses: actions/checkout@v2
+        - name: Checkout Nim
+            uses: actions/checkout@v2
+            with:
+                repository: nim-lang/Nim
+                path: nim
+        - name: Checkout Nim csources
+            uses: actions/checkout@v2
+            with:
+                repository: nim-lang/csources_v1
+                path: nim/csources_v1
+        - name: Build Nim devel
+            working-directory: nim/csources_v1
+            shell: bash
+            run: |
+                make --jobs
+                cd ../
+                
+                ./bin/nim compile ./koch.nim
+                ./koch boot
+                ./koch nimble
 
-				echo "${PWD}/bin" >> "${GITHUB_PATH}"
-		- name: Checkout PCRE
-			run: |
-				wget "https://download.sourceforge.net/project/pcre/pcre/8.45/pcre-8.45.tar.gz" --output-document='pcre.tar.gz'
-				tar --extract --file='pcre.tar.gz'
-				mv 'pcre-8.45' 'pcre'
-		- name: Build PCRE
-			working-directory: pcre
-			env:
-				CFLAGS: '-s -w -Wfatal-errors -Os'
-			run: |
-				./configure --disable-cpp --disable-shared --enable-static
-				make --jobs
-		- name: Set PCRE_STATIC_LIBRARY
-			run: echo "PCRE_STATIC_LIBRARY=$(realpath ./.libs/libpcre.a)" >> "${GITHUB_ENV}"
-		- name: Checkout LibreSSL
-			run: |
-				wget "https://cdn.openbsd.org/pub/OpenBSD/LibreSSL/libressl-3.4.2.tar.gz" --output-document='libressl.tar.gz'
-				tar --extract --file='libressl.tar.gz'
-				mv 'libressl-3.4.2' 'libressl'
-		- name: Build LibreSSL
-			working-directory: libressl
-			env:
-				CFLAGS: '-s -w -Wfatal-errors -Os'
-			run: |
-				./configure --disable-tests --disable-shared --enable-static
-				make --jobs
-		- name: Set LIBRESSL_STATIC_LIBCRYPTO
-			run: echo "LIBRESSL_STATIC_LIBCRYPTO=$(realpath ./crypto/.libs/libcrypto.a)" >> "${GITHUB_ENV}"
-		- name: Set LIBRESSL_STATIC_LIBSSL
-			run: echo "LIBRESSL_STATIC_LIBSSL=$(realpath ./crypto/.libs/libssl.a)" >> "${GITHUB_ENV}"
-		- name: Build Unalix
-			run: |
-				ls */*
-				nim compile \
-				--define:'libressl' \
-				--define:'release' \
-				--dynlibOverride:'ssl' \
-				--dynlibOverride:'crypto' \
-				--dynlibOverride:'pcre' \
-				--opt:'speed' \
-				--define:'strip' \
-				--define:'danger' \
-				--panics:'on' \
-				--gc:'orc' \
-				--passC:'-Ofast' \
-				--passC:'-flto=full' \
-				--passL:'-static' \
-				--passL:"${{ env.PCRE_STATIC_LIBRARY }}" \
-				--passL:"${{ env.LIBRESSL_STATIC_LIBCRYPTO }}" \
-				--passL:"${{ env.LIBRESSL_STATIC_LIBSSL }}" \
-				--out:'./unalix' \
-				'src/unalixpkg/main.nim'
+                echo "${PWD}/bin" >> "${GITHUB_PATH}"
+        - name: Checkout PCRE
+            run: |
+                wget "https://download.sourceforge.net/project/pcre/pcre/8.45/pcre-8.45.tar.gz" --output-document='pcre.tar.gz'
+                tar --extract --file='pcre.tar.gz'
+                mv 'pcre-8.45' 'pcre'
+        - name: Build PCRE
+            working-directory: pcre
+            env:
+                CFLAGS: '-s -w -Wfatal-errors -Os'
+            run: |
+                ./configure --disable-cpp --disable-shared --enable-static
+                make --jobs
+        - name: Set PCRE_STATIC_LIBRARY
+            run: echo "PCRE_STATIC_LIBRARY=$(realpath ./.libs/libpcre.a)" >> "${GITHUB_ENV}"
+        - name: Checkout LibreSSL
+            run: |
+                wget "https://cdn.openbsd.org/pub/OpenBSD/LibreSSL/libressl-3.4.2.tar.gz" --output-document='libressl.tar.gz'
+                tar --extract --file='libressl.tar.gz'
+                mv 'libressl-3.4.2' 'libressl'
+        - name: Build LibreSSL
+            working-directory: libressl
+            env:
+                CFLAGS: '-s -w -Wfatal-errors -Os'
+            run: |
+                ./configure --disable-tests --disable-shared --enable-static
+                make --jobs
+        - name: Set LIBRESSL_STATIC_LIBCRYPTO
+            run: echo "LIBRESSL_STATIC_LIBCRYPTO=$(realpath ./crypto/.libs/libcrypto.a)" >> "${GITHUB_ENV}"
+        - name: Set LIBRESSL_STATIC_LIBSSL
+            run: echo "LIBRESSL_STATIC_LIBSSL=$(realpath ./crypto/.libs/libssl.a)" >> "${GITHUB_ENV}"
+        - name: Build Unalix
+            run: |
+                ls */*
+                nim compile \
+                --define:'libressl' \
+                --define:'release' \
+                --dynlibOverride:'ssl' \
+                --dynlibOverride:'crypto' \
+                --dynlibOverride:'pcre' \
+                --opt:'speed' \
+                --define:'strip' \
+                --define:'danger' \
+                --panics:'on' \
+                --gc:'orc' \
+                --passC:'-Ofast' \
+                --passC:'-flto=full' \
+                --passL:'-static' \
+                --passL:"${{ env.PCRE_STATIC_LIBRARY }}" \
+                --passL:"${{ env.LIBRESSL_STATIC_LIBCRYPTO }}" \
+                --passL:"${{ env.LIBRESSL_STATIC_LIBSSL }}" \
+                --out:'./unalix' \
+                'src/unalixpkg/main.nim'
 
-		- name: Upload APK
-			uses: actions/upload-artifact@main
-			with:
-				name: 'unalix-${{ matrix.target.triple }}'
-				path: unalix
+        - name: Upload APK
+            uses: actions/upload-artifact@main
+            with:
+                name: 'unalix-${{ matrix.target.triple }}'
+                path: unalix
