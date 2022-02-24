@@ -1,6 +1,8 @@
+# Unalix
+
 Unalix is a library and CLI tool written in Nim, it implements the specification used by the [ClearURLs](https://github.com/ClearURLs/Addon) addon for removing tracking fields from URLs.
 
-#### Installation
+## Installation
 
 Install using `nimble`:
 
@@ -10,7 +12,7 @@ nimble install --accept 'unalix'
 
 _**Note**: Unalix requires Nim 1.4.0 or higher._
 
-#### Usage:
+## Usage:
 
 Removing tracking fields:
 
@@ -23,7 +25,7 @@ let result: string = clearUrl(url = url)
 assert result == "https://deezer.com/track/891177062"
 ```
 
-Unshort shortened URL:
+Resolving shortened URL:
 
 ```nim
 import unalix
@@ -36,15 +38,15 @@ assert result == "https://bitly.com/pages/pricing"
 
 _**Tip**: The `unshortUrl()` proc will strip tracking fields from any URL before following a redirect, so you don't need to manually call `clearUrl()` for it's return value._
 
-#### Downloads
+## Downloads
 
-You can get prebuilt static executables for Linux and Android at [AmanoTeam/UnalixLibs](https://github.com/AmanoTeam/UnalixLibs).
+You can get prebuilt static executables of the CLI tool for Linux and Android [here](https://github.com/AmanoTeam/UnalixLibs).
 
-#### Contributing
+## Contributing
 
 If you have discovered a bug in this library and know how to fix it, fork this repository and open a Pull Request.
 
-#### Third party software
+## Third party software
 
 Unalix includes some third party software in its codebase. See them below:
 
