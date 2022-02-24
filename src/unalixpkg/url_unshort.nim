@@ -235,14 +235,6 @@ proc closeFd(self: Socket | AsyncSocket): void =
     else:
         fd.close()
 
-proc resolveHostname(hostname: string, port: Port): string =
-    
-    let ai: ptr AddrInfo = getAddrInfo(address = hostname, port = port, domain = AF_UNSPEC)
-    let address: ptr SockAddr = ai.ai_addr
-
-    result = address.getAddrString()
-    freeAddrInfo(a1 = ai)
-
 proc unshortUrl*(
     self: SyncUnalix | AsyncUnalix,
     url: string,
@@ -284,6 +276,32 @@ proc unshortUrl*(
 
         var uri: Uri = parseUri(uri = thisUrl)
 
+        if isIpAddress(addressStr = uri.hostname):
+            let address: IpAddress = parseIpAddress(addressStr = uri.hostname)
+            if address.family == IPv6:
+                raise (ref UnsupportedProtocolError)(msg: "IPv6 connections are not supported", url: thisUrl)
+
+        when self is AsyncUnalix:
+            let socket: AsyncSocket = newAsyncSocket(
+                domain = AF_INET,
+                sockType = SOCK_STREAM,
+                protocol = IPPROTO_TCP,
+                buffered = false
+            )
+        else:
+            let socket: Socket = newSocket(
+                domain = AF_INET,
+                sockType = SOCK_STREAM,
+                protocol = IPPROTO_TCP,
+                buffered = false
+            )
+
+        socket.setSockOpt(opt = OptNoDelay, value = true, level = IPPROTO_TCP.cint)
+        
+        # Build raw HTTP request
+        if uri.path.isEmptyOrWhitespace():
+            uri.path = "/"
+
         # Get port
         let port: int = (
             if uri.port.isEmptyOrWhitespace():
@@ -298,59 +316,14 @@ proc unshortUrl*(
                 uri.port.parseInt()
         )
 
-        let address: IpAddress = (
-            if isIpAddress(addressStr = uri.hostname):
-                parseIpAddress(addressStr = uri.hostname)
-            else:
-                try:
-                    parseIpAddress(addressStr = resolveHostname(hostname = uri.hostname, port = Port(port)))
-                except Exception as e:
-                    raise (ref ResolverError)(msg: e.msg, url: thisUrl, parent: e)
-        )
-        
-        let domain: Domain = (
-            case address.family
-            of IPv6:
-                AF_INET6
-            of IPv4:
-                AF_INET
-        )
-
         # Build hostname
         let hostname: string = (
             if (uri.scheme == "http" and port != 80) or (uri.scheme == "https" and port != 443):
-                if isIpAddress(addressStr = uri.hostname) and (domain == AF_INET6):
-                    "[$1]:$2" % [uri.hostname, $port]
-                else:
-                    "$1:$2" % [uri.hostname, $port]
+                "$1:$2" % [uri.hostname, $port]
             else:
-                if isIpAddress(addressStr = uri.hostname) and (domain == AF_INET6):
-                    "[$1]" % [uri.hostname]
-                else:
-                    uri.hostname
+                uri.hostname
         )
 
-        when self is AsyncUnalix:
-            let socket: AsyncSocket = newAsyncSocket(
-                domain = domain,
-                sockType = SOCK_STREAM,
-                protocol = IPPROTO_TCP,
-                buffered = false
-            )
-        else:
-            let socket: Socket = newSocket(
-                domain = domain,
-                sockType = SOCK_STREAM,
-                protocol = IPPROTO_TCP,
-                buffered = false
-            )
-
-        socket.setSockOpt(opt = OptNoDelay, value = true, level = IPPROTO_TCP.cint)
-        
-        # Build raw HTTP request
-        if uri.path.isEmptyOrWhitespace():
-            uri.path = "/"
-        
         let data: string = (
             "GET $1 HTTP/1.0\nHost: $2\n$3\n\n" % [
                 (
@@ -369,9 +342,12 @@ proc unshortUrl*(
             ]
         )
 
+        if uri.scheme == "https":
+            wrapSocket(ctx = sslContext, socket = socket)
+
         # Attempt to connect
         when self is AsyncUnalix:
-            let future: Future[void] = socket.connect(address = $address, port = Port(port))
+            let future: Future[void] = socket.connect(address = uri.hostname, port = Port(port))
             try:
                 await future or sleepAsync(ms = timeout)
             except Exception as e:
@@ -391,25 +367,20 @@ proc unshortUrl*(
                 when (NimMajor, NimMinor) < (1, 6):
                     # See https://github.com/nim-lang/Nim/issues/15215
                     if socket.isSsl():
-                        socket.connect(address = $address, port = Port(port))
+                        socket.connect(address = uri.hostname, port = Port(port))
                     else:
-                        socket.connect(address = $address, port = Port(port), timeout = timeout)
+                        socket.connect(address = uri.hostname, port = Port(port), timeout = timeout)
                 else:
-                    socket.connect(address = $address, port = Port(port), timeout = timeout)
+                    socket.connect(address = uri.hostname, port = Port(port), timeout = timeout)
             except Exception as e:
                 socket.closeFd()
                 raise (ref ConnectError)(msg: e.msg, url: thisUrl, parent: e)
 
-        if uri.scheme == "https":
-            wrapConnectedSocket(
-                ctx = sslContext,
-                socket = socket,
-                handshake = handshakeAsClient,
-                hostname = uri.hostname
-            )
-
         # Send request
-        await socket.send(data = data)
+        try:
+            await socket.send(data = data)
+        except Exception as e:
+            raise (ref SendError)(msg: e.msg, url: thisUrl, parent: e)
 
         # Start reading headers
         var chunks: string

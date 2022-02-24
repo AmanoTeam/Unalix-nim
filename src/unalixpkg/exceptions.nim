@@ -6,4 +6,5 @@ type
     UnsupportedProtocolError* {.final.} = object of UnalixException
     RemoteProtocolError* {.final.} = object of UnalixException
     ReadError* {.final.} = object of UnalixException
+    SendError* {.final.} = object of UnalixException
     TooManyRedirectsError* {.final.} = object of UnalixException
