@@ -59,10 +59,7 @@ if not caFile.fileExists():
     writeFile(filename = caFile, content = caFileContent)
     setFilePermissions(filename = caFile, permissions = {fpUserRead})
 
-var sslContext: SslContext = newContext(
-    caDir = caDir,
-    caFile = caFile
-)
+let sslContext: SslContext = newContext(caFile = caFile)
 
 setControlCHook(
     hook = proc(): void {.noconv.} =
