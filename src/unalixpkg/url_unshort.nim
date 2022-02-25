@@ -231,10 +231,11 @@ proc closeSocket(socket: Socket | AsyncSocket): void =
         AsyncFD(fd).unregister()
         fd.close()
 
-        # Free memory referenced by SSL handle
-        let sslHandle: SslPtr = socket.sslHandle()
-        discard SSL_shutdown(ssl = sslHandle)
-        SSL_free(ssl = sslHandle)
+        if socket.isSsl():
+            # Free memory referenced by SSL handle
+            let sslHandle: SslPtr = socket.sslHandle()
+            discard SSL_shutdown(ssl = sslHandle)
+            SSL_free(ssl = sslHandle)
     else:
         socket.close()
 
