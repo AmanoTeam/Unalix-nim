@@ -7,6 +7,10 @@ import ./unalixpkg/exceptions
 import ./unalixpkg/types
 import ./unalixpkg/config
 
+const
+    syncUnalix: SyncUnalix = SyncUnalix()
+    asyncUnalix: AsyncUnalix = AsyncUnalix()
+
 proc unshortUrl*(
     url: string,
     ignoreReferralMarketing: bool = false,
@@ -21,12 +25,10 @@ proc unshortUrl*(
     timeout: int = DEFAULT_TIMEOUT,
     headers: seq[(string, string)] = DEFAULT_HTTP_HEADERS,
     maxRedirects: int = DEFAULT_MAX_REDIRECTS,
-    sslContext: SslContext = newContext()
+    sslContext: SslContext = nil
 ): string =
-    
-    let obj: SyncUnalix = SyncUnalix()
-    
-    result = obj.unshortUrl(
+
+    result = syncUnalix.unshortUrl(
         url = url,
         ignoreReferralMarketing = ignoreReferralMarketing,
         ignoreRules = ignoreRules,
@@ -58,12 +60,10 @@ proc aunshortUrl*(
     timeout: int = DEFAULT_TIMEOUT,
     headers: seq[(string, string)] = DEFAULT_HTTP_HEADERS,
     maxRedirects: int = DEFAULT_MAX_REDIRECTS,
-    sslContext: SslContext = newContext()
+    sslContext: SslContext = nil
 ): Future[string] {.async, gcsafe.} =
-    
-    let obj: AsyncUnalix = AsyncUnalix()
-    
-    result = await obj.unshortUrl(
+
+    result = await asyncUnalix.unshortUrl(
         url = url,
         ignoreReferralMarketing = ignoreReferralMarketing,
         ignoreRules = ignoreRules,
@@ -81,8 +81,4 @@ proc aunshortUrl*(
     )
 
 export clearUrl
-
-export UnsupportedProtocolError
-export ReadError
-export TooManyRedirectsError
-export ConnectError
+export exceptions

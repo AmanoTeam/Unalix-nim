@@ -116,9 +116,9 @@ proc writeStdout*(msg: string, exitCode = -1): void =
         quit(exitCode)
 
 proc handleUrl(url: string): void =
-    
+
     var newUrl: string
-    
+
     if unshort:
         try:
             newUrl = waitFor aunshortUrl(
@@ -136,14 +136,14 @@ proc handleUrl(url: string): void =
                 maxRedirects = maxRedirects,
                 sslContext = sslContext
             )
-        except ConnectError as e:
+        except UnalixException as e:
             let exception: ref Exception = if e.parent.isNil(): e else: e.parent
-            
+
             if strictErrors:
                 writeFatal(msg = &"{exception.msg} [{exception.name}]", exitCode = 1)
             else:
                 writeError(msg = &"{exception.msg} [{exception.name}]")
-            
+
             newUrl = e.url
     else:
         newUrl = clearUrl(
@@ -157,9 +157,9 @@ proc handleUrl(url: string): void =
             stripEmpty = stripEmpty,
             stripDuplicates = stripDuplicates
         )
-    
+
     writeStdout(msg = newUrl)
-    
+
     if launchInBrowser:
         openDefaultBrowser(url = newUrl)
 

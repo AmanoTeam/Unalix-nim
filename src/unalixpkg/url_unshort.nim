@@ -12,6 +12,7 @@ import std/tables
 import std/re
 import std/pegs
 import std/os
+import std/openssl
 
 import ./config
 import ./types
@@ -225,15 +226,26 @@ proc parseHeaders(chunks: string): Response =
         body = parts[1]
     )
 
-proc closeFd(self: Socket | AsyncSocket): void =
-    
-    let fd: SocketHandle = self.getFd()
-    
-    when self is AsyncSocket:
+proc closeSocket(socket: Socket | AsyncSocket): void =
+
+    when socket is AsyncSocket:
+        # Close file descriptor
+        let fd: SocketHandle = socket.getFd()
         AsyncFD(fd).unregister()
         fd.close()
+
+        # Free memory referenced by SSL handle
+        let sslHandle: SslPtr = socket.sslHandle()
+        discard SSL_shutdown(ssl = sslHandle)
+        SSL_free(ssl = sslHandle)
     else:
-        fd.close()
+        socket.close()
+
+var defaultSslContext {.threadvar.}: SslContext
+defaultSslContext = newContext()
+
+proc getDefaultSSL(): SslContext =
+    result = defaultSslContext
 
 proc unshortUrl*(
     self: SyncUnalix | AsyncUnalix,
@@ -250,12 +262,12 @@ proc unshortUrl*(
     timeout: int = DEFAULT_TIMEOUT,
     headers: seq[(string, string)] = DEFAULT_HTTP_HEADERS,
     maxRedirects: int = DEFAULT_MAX_REDIRECTS,
-    sslContext: SslContext = newContext()
+    sslContext: SslContext = nil
 ): Future[string] {.multisync, gcsafe.} =
-    
+
     if not (url.startsWith(prefix = "http") or url.startsWith(prefix = "https")):
         raise (ref UnsupportedProtocolError)(msg: "Unrecognized URI or unsupported protocol", url: url)
-    
+
     var thisUrl: string = clearUrl(
         url = url,
         ignoreReferralMarketing = ignoreReferralMarketing,
@@ -281,23 +293,6 @@ proc unshortUrl*(
             if address.family == IPv6:
                 raise (ref UnsupportedProtocolError)(msg: "IPv6 connections are not supported", url: thisUrl)
 
-        when self is AsyncUnalix:
-            let socket: AsyncSocket = newAsyncSocket(
-                domain = AF_INET,
-                sockType = SOCK_STREAM,
-                protocol = IPPROTO_TCP,
-                buffered = false
-            )
-        else:
-            let socket: Socket = newSocket(
-                domain = AF_INET,
-                sockType = SOCK_STREAM,
-                protocol = IPPROTO_TCP,
-                buffered = false
-            )
-
-        socket.setSockOpt(opt = OptNoDelay, value = true, level = IPPROTO_TCP.cint)
-        
         # Build raw HTTP request
         if uri.path.isEmptyOrWhitespace():
             uri.path = "/"
@@ -342,8 +337,15 @@ proc unshortUrl*(
             ]
         )
 
+        when self is AsyncUnalix:
+            let socket: AsyncSocket = newAsyncSocket()
+        else:
+            let socket: Socket = newSocket()
+
+        socket.setSockOpt(opt = OptNoDelay, value = true, level = IPPROTO_TCP.cint)
+        
         if uri.scheme == "https":
-            wrapSocket(ctx = sslContext, socket = socket)
+            wrapSocket(ctx = if sslContext.isNil(): getDefaultSSL() else: sslContext, socket = socket)
 
         # Attempt to connect
         when self is AsyncUnalix:
@@ -351,14 +353,14 @@ proc unshortUrl*(
             try:
                 await future or sleepAsync(ms = timeout)
             except Exception as e:
-                socket.closeFd()
+                closeSocket(socket = socket)
                 raise (ref ConnectError)(msg: e.msg, url: thisUrl, parent: e)
 
             if not future.finished():
                 future.fail(error = (ref TimeoutError)(msg: "Call to 'connect' timed out."))
 
             if future.failed():
-                socket.closeFd()
+                closeSocket(socket = socket)
 
                 let e: ref Exception = future.readError()
                 raise (ref ConnectError)(msg: e.msg, url: thisUrl, parent: e)
@@ -373,7 +375,7 @@ proc unshortUrl*(
                 else:
                     socket.connect(address = uri.hostname, port = Port(port), timeout = timeout)
             except Exception as e:
-                socket.closeFd()
+                closeSocket(socket = socket)
                 raise (ref ConnectError)(msg: e.msg, url: thisUrl, parent: e)
 
         # Send request
@@ -394,7 +396,7 @@ proc unshortUrl*(
                     future.fail(error = (ref TimeoutError)(msg: "Call to 'recv' timed out."))
 
                 if future.failed():
-                    socket.closeFd()
+                    closeSocket(socket = socket)
 
                     let e: ref Exception = future.readError()
                     raise (ref ReadError)(msg: e.msg, url: thisUrl, parent: e)
@@ -405,7 +407,7 @@ proc unshortUrl*(
                     try:
                         socket.recv(size = 100, timeout = timeout)
                     except Exception as e:
-                        socket.closeFd()
+                        closeSocket(socket = socket)
                         raise (ref ReadError)(msg: e.msg, url: thisUrl, parent: e)
                 )
 
@@ -419,7 +421,7 @@ proc unshortUrl*(
             try:
                 parseHeaders(chunks = chunks)
             except RemoteProtocolError as e:
-                socket.closeFd()
+                closeSocket(socket = socket)
 
                 e.url = thisUrl
                 raise e
@@ -434,7 +436,7 @@ proc unshortUrl*(
             location = response.headers["Content-Location"].toString()
 
         if not location.isEmptyOrWhitespace():
-            socket.closeFd()
+            closeSocket(socket = socket)
 
             location = location.replace(sub = " ", by = "%20")
 
@@ -490,7 +492,7 @@ proc unshortUrl*(
                         future.fail(error = (ref TimeoutError)(msg: "Call to 'recv' timed out."))
 
                     if future.failed():
-                        socket.closeFd()
+                        closeSocket(socket = socket)
 
                         let e: ref Exception = future.readError()
                         raise (ref ReadError)(msg: e.msg, url: thisUrl, parent: e)
@@ -501,7 +503,7 @@ proc unshortUrl*(
                         try:
                             socket.recv(size = 100, timeout = timeout)
                         except Exception as e:
-                            socket.closeFd()
+                            closeSocket(socket = socket)
                             raise (ref ReadError)(msg: e.msg, url: thisUrl, parent: e)
                     )
 
@@ -510,7 +512,7 @@ proc unshortUrl*(
 
                 response.body.add(y = data)
 
-            socket.closeFd()
+            closeSocket(socket = socket)
 
             if response.headers.hasKey(key = "Content-Length"):
                 # If there is a "Content-Length" header field in the response we will check if it matches
@@ -552,6 +554,6 @@ proc unshortUrl*(
 
                 continue
         else:
-            socket.closeFd()
+            closeSocket(socket = socket)
 
         return thisUrl
