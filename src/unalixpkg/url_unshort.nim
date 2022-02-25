@@ -140,10 +140,7 @@ proc parseHeaders(chunks: string): Response =
                 statusCode = Http401
                 statusMessage = "Unauthorized"
             of "402":
-                when (NimMajor, NimMinor) < (1, 6):
-                    statusCode = HttpCode(402)
-                else:
-                    statusCode = Http402
+                statusCode = Http402
                 statusMessage = "Payment Required"
             of "403":
                 statusCode = Http403
@@ -366,14 +363,7 @@ proc unshortUrl*(
                 raise (ref ConnectError)(msg: e.msg, url: thisUrl, parent: e)
         else:
             try:
-                when (NimMajor, NimMinor) < (1, 6):
-                    # See https://github.com/nim-lang/Nim/issues/15215
-                    if socket.isSsl():
-                        socket.connect(address = uri.hostname, port = Port(port))
-                    else:
-                        socket.connect(address = uri.hostname, port = Port(port), timeout = timeout)
-                else:
-                    socket.connect(address = uri.hostname, port = Port(port), timeout = timeout)
+                socket.connect(address = uri.hostname, port = Port(port), timeout = timeout)
             except Exception as e:
                 closeSocket(socket = socket)
                 raise (ref ConnectError)(msg: e.msg, url: thisUrl, parent: e)
