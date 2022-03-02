@@ -1,4 +1,4 @@
-import strformat
+import strutils
 
 const
     UNALIX_VERSION*: string = "0.8"
@@ -9,7 +9,7 @@ const
         ("Accept", "*/*"),
         ("Accept-Encoding", "identity"),
         ("Connection", "close"),
-        ("User-Agent", &"Unalix/{UNALIX_VERSION} (+{UNALIX_REPOSITORY})")
+        ("User-Agent", "Unalix/$1 (+$2)" % [UNALIX_VERSION, UNALIX_REPOSITORY])
     ]
     DEFAULT_MAX_REDIRECTS*: int = 13
     DEFAULT_TIMEOUT*: int = 3000
