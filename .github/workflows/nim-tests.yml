@@ -13,7 +13,8 @@ jobs:
       matrix:
         nim-version: [
             "stable",
-            "1.6.0"
+            "1.6.0",
+            "1.4.0"
         ]
 
     steps:
